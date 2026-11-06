@@ -1,0 +1,14 @@
+# data and secrets
+data/
+*.db
+.env
+kaggle.json
+__pycache__/
+.venv/
+venv/
+# model files: add your own small ones deliberately (GitHub limit 100 MB)
+# models/*.keras
+# models/*.h5
+
+__pycache__/
+.pytest_cache/
