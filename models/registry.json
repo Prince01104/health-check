@@ -1,0 +1,27 @@
+{
+  "oral": {
+    "model": "oral4_model.keras",
+    "classes": "oral4_classes.json",
+    "threshold": 0.70,
+    "class_thresholds": { "mouth_ulcer": 0.90 },
+    "interpolation": "nearest"
+  },
+  "skin": {
+    "model": "skin_model.keras",
+    "classes": "skin_classes.json",
+    "threshold": 0.70,
+    "interpolation": "nearest"
+  },
+  "infection": {
+    "model": "infection_model.keras",
+    "classes": "infection_classes.json",
+    "threshold": 0.70,
+    "interpolation": "nearest"
+  },
+  "nail": {
+    "model": "nail_model.keras",
+    "classes": "nail_classes.json",
+    "threshold": 0.70,
+    "interpolation": "nearest"
+  }
+}

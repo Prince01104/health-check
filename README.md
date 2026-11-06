@@ -1,90 +1,106 @@
-# Health Check (oral, skin, infection, nail screening)
+# Health Check
 
-Mobile-style web app: login, 4 checks, result with heatmap (Grad-CAM), history, PDF report, English/Hindi.
-Backend: FastAPI + SQLite + TensorFlow. Frontend: plain HTML/CSS/JS (no build step).
+A small web app that looks at a photo and gives a rough first opinion on four things: mouth and teeth, skin, infections and nails. I built it as a learning project to practise training image classifiers and then putting them inside a real app.
 
-> **AI screening only. It does not replace a doctor's diagnosis.** This is a learning project.
+**This is not a medical tool. It cannot diagnose anything and it is not a replacement for a doctor.** Please do not use it to make health decisions.
 
-## Run karna (Windows)
+## What it does
 
-1. Python 3.10+ chahiye. Is folder mein terminal kholo:
-   ```
-   python -m venv .venv
-   .venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
-2. Server chalao:
-   ```
-   python -m uvicorn backend.main:app --port 8000
-   ```
-   (ya `run.bat` par double click)
-3. Browser mein kholo: http://127.0.0.1:8000
+- Four checks: Oral, Skin, Infection and Nail
+- You upload or take a photo and get a possible result with a confidence score
+- If the model is not confident, it says "Not sure" instead of guessing
+- A Grad-CAM heatmap shows which part of the photo the model looked at
+- Warns you when the photo is blurry, too dark, too bright or too small
+- A "find a doctor near me" button that opens Google Maps
+- A daily health tip, English and Hindi
+- Feedback box after every result
 
-**Phone par chalane ke liye** (phone aur computer same Wi-Fi par): `python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000`,
-phir phone ke browser mein `http://<computer-ka-IP>:8000` kholo (IP ke liye `ipconfig`). "Take photo" button seedha camera kholta hai.
+The full version (FastAPI) also has login, history, PDF reports, a day streak and reminders. The Streamlit version is a lighter guest-mode copy made for free online hosting. It does not save photos.
 
-## Apne models lagana
+## Current state of the models
 
-Models `models/` folder mein rakho. Kaunsa check kaunsi file padhta hai, wo `models/registry.json` mein likha hai:
+Each check has its own small CNN built with TensorFlow/Keras and trained on Kaggle.
 
-| Check | Model file | Classes file |
-|---|---|---|
-| Oral | `oral4_model.keras` | `oral4_classes.json` |
-| Skin | `skin_model.keras` | `skin_classes.json` |
-| Infection | `infection_model.keras` | `infection_classes.json` |
-| Nail | `nail_model.keras` | `nail_classes.json` |
+| Check | Classes | Test accuracy | Status |
+|---|---|---|---|
+| Oral | calculus, gingivitis, hypodontia, mouth ulcer | about 96% | working |
+| Skin | acne, eczema, tinea, normal | about 79% | working |
+| Infection | - | - | not trained yet |
+| Nail | - | - | not trained yet |
 
-- Aapke Kaggle se download kiye `oral4_model.keras` aur `oral4_classes.json` seedha is folder mein daal do (purani dummy file replace ho jayegi).
-- 3-class skin model (`skin3_model.keras`, `skin3_classes.json`) ko rename karke `skin_model.keras` / `skin_classes.json` kar do
-  (ya `registry.json` mein naam badal do).
-- Jis check ki model file nahi hai, uspar app "Coming soon" dikhata hai.
-- **`classes.json` ka order wahi hona chahiye jo training ke `class_indices` mein tha.**
-- Image size model se apne aap aata hai. Model ko `/255` wali tarah train kiya hona chahiye (jaise `rescale=1/255`).
-- Dummy (random) models `python tools/make_dummy_models.py` se bante hain. Unpar app "Demo model" ki warning dikhata hai,
-  jo asli model lagate hi apne aap hat jati hai.
+The accuracy numbers look better than the models really are. Things I found while testing:
 
-### Thresholds (`registry.json`)
-- `threshold`: isse kam confidence par result "Not sure" dikhta hai (abhi 0.70).
-- `class_thresholds`: kisi class ke liye alag. Oral mein `mouth_ulcer` ke liye 0.90 hai, kyunki test mein ye model ki
-  "default" class nikli (adhoori photos ko bhi ulcer bol deti thi).
-- Class ka naam `not_...` se shuru ho (jaise `not_oral`) to result "Photo not suitable" dikhta hai.
-- Class ke naam mein `normal` ho to result "No clear problem" dikhta hai.
+- The oral model has no "normal" or "not a mouth" class, so it will still pick one of the four diseases for any photo. Mouth ulcer ended up as its default answer, so it needs 90% confidence before I show it.
+- Part of the oral accuracy comes from the model recognising the type of photo in each dataset, not the disease itself.
+- The skin model over-predicts tinea. Its precision for that class is only about 47%.
+- The "normal" skin class is easy because the images are things like hands, plain skin and even a dog.
+- Many skin images come from DermNet and carry watermarks, so I added random watermark augmentation during training to stop the model from using that as a shortcut.
+- Photos taken outside the datasets are the real test, and the results there are weaker than the numbers above.
 
-## Features
+Next things I want to try: a proper normal / not-oral class for the mouth model, transfer learning (MobileNetV2) for skin, and training the infection and nail models.
 
-Done: login/signup, 4 checks, confidence + "Not sure" message, photo quality warning (blur/dark/small),
-Grad-CAM heatmap, history + delete, PDF report, nearby doctor link (Google Maps), daily tip, day streak,
-Hindi/English, in-app daily reminder, account and data delete.
+## Datasets
 
-Abhi nahi: forgot-password (email service chahiye), push notifications jab app band ho, photo se height, chatbot.
+The training images are not in this repo. Some of them (DermNet especially) are copyrighted, and photos of people's health problems should not be re-shared. The oral and skin images came from public Kaggle datasets and a Mendeley dataset. If you want to retrain, get the data from the original sources.
+
+## Project layout
+
+```
+backend/        FastAPI app, model loading, Grad-CAM, database, PDF report, tips (EN/HI)
+frontend/       plain HTML, CSS and JavaScript for the FastAPI version
+streamlit_app/  the Streamlit version (guest mode) and its requirements
+models/         registry.json and the trained .keras model files
+tools/          script that makes random dummy models for testing
+tests/          API tests
+```
+
+## Run it on your computer
+
+You need Python 3.10 or newer.
+
+**Streamlit version**
+
+```
+pip install -r streamlit_app/requirements.txt
+streamlit run streamlit_app/streamlit_app.py
+```
+
+**Full version (login, history, PDF)**
+
+```
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+python -m uvicorn backend.main:app --port 8000
+```
+
+Then open http://127.0.0.1:8000. On Linux or Mac use `source .venv/bin/activate` instead of the activate line above.
+
+## Using your own models
+
+Put the model and its class list in `models/`. `models/registry.json` says which file each check reads. The order of names in the classes file must match the order used during training. The model should expect images scaled by 1/255. If a check has no model file, the app shows "Coming soon" for it.
+
+In `registry.json` you can also set the confidence threshold for each check, and a different threshold for a single class. A class whose name starts with `not_` is shown as "photo not suitable", and a class with `normal` in its name is shown as "no clear problem".
+
+If no real model is found you can run `python tools/make_dummy_models.py` to create random ones for testing. The app shows a warning on those because their answers mean nothing.
+
+## Hosting it for free
+
+The Streamlit version can run on Streamlit Community Cloud. Steps are in [DEPLOY.md](DEPLOY.md). The free app goes to sleep after a while without visitors and does not keep files, so feedback is better collected with a Google Form.
 
 ## Privacy
-- Photos aur results sirf `data/` folder mein rehte hain (isko GitHub par mat daalna, `.gitignore` mein pehle se hai).
-- Profile > "Delete my account and data" sab kuch mita deta hai.
-- Passwords PBKDF2 se hash hote hain. Login 30 din tak chalta hai.
-- Ye app abhi sirf apne computer/Wi-Fi ke liye hai. Internet par daalne se pehle HTTPS aur secrets ka dhyan rakhna padega.
 
-## Free online deploy
-Streamlit version (guest mode, feedback form): `streamlit_app/` aur [DEPLOY.md](DEPLOY.md) dekho.
+- The Streamlit version keeps photos only in memory while the result is made. Nothing is saved.
+- The full version stores photos and results in a local `data/` folder, which is in `.gitignore`. A user can delete their account and everything with it. Passwords are hashed with PBKDF2.
+- Never upload `data/`, API tokens or `kaggle.json` to GitHub.
 
 ## Tests
+
 ```
 pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-## GitHub par daalne se pehle
-- `data/`, `.venv/`, `kaggle.json` mat daalo. Dataset ki images mat daalo (DermNet jaisi images par copyright hai), sirf link do.
-- Model file 100 MB se chhoti ho tabhi daalo.
-- README mein model ki limitations likho (dataset bias, chhoti classes, shortcut tests).
+## Not done yet
 
-## Folder
-```
-backend/   main.py (API), ml.py (model + Grad-CAM), db.py, content.py (tips EN/HI), report.py (PDF)
-frontend/  index.html, style.css, app.js
-models/    registry.json + model files
-streamlit_app/  streamlit_app.py (free deploy version) + requirements.txt
-tools/     make_dummy_models.py
-tests/     test_api.py
-data/      app.db + photos (apne aap banta hai)
-```
+Forgot-password by email, push notifications while the app is closed, estimating height from a photo, and a chatbot.
