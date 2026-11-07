@@ -1,5 +1,7 @@
 # Health Check
 
+small demo : https://health-check-prince.streamlit.app/#health-check
+
 A small web app that looks at a photo and gives a rough first opinion on four things: mouth and teeth, skin, infections and nails. I built it as a learning project to practise training image classifiers and then putting them inside a real app.
 
 **This is not a medical tool. It cannot diagnose anything and it is not a replacement for a doctor.** Please do not use it to make health decisions.
