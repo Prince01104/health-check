@@ -16,6 +16,7 @@ A small web app that looks at a photo and gives a rough first opinion on four th
 - A "find a doctor near me" button that opens Google Maps
 - A daily health tip, English and Hindi
 - Feedback box after every result
+- A chat box under every result where you can ask follow-up questions (powered by Gemini, see below)
 
 The full version (FastAPI) also has login, history, PDF reports, a day streak and reminders. The Streamlit version is a lighter guest-mode copy made for free online hosting. It does not save photos.
 
@@ -48,12 +49,13 @@ The training images are not in this repo. Some of them (DermNet especially) are 
 ## Project layout
 
 ```
-backend/        FastAPI app, model loading, Grad-CAM, database, PDF report, tips (EN/HI)
+backend/        FastAPI app, model loading, Grad-CAM, database, PDF report, tips (EN/HI), chat.py (Gemini chat)
 frontend/       plain HTML, CSS and JavaScript for the FastAPI version
 streamlit_app/  the Streamlit version (guest mode) and its requirements
 models/         registry.json and the trained .keras model files
 tools/          script that makes random dummy models for testing
-tests/          API tests
+tests/          API and chat tests
+Dockerfile      for Google Cloud Run (FastAPI version)
 ```
 
 ## Run it on your computer
@@ -90,11 +92,73 @@ If no real model is found you can run `python tools/make_dummy_models.py` to cre
 
 The Streamlit version can run on Streamlit Community Cloud. Steps are in [DEPLOY.md](DEPLOY.md). The free app goes to sleep after a while without visitors and does not keep files, so feedback is better collected with a Google Form.
 
+## Chatbot (Gemini)
+
+Under every result there is a chat box. The user can ask what the result may mean, get basic care tips, or ask when to see a doctor, and Gemini answers in simple English, Hindi or Hinglish. The chat remembers the earlier messages and the model result.
+
+**How it works**
+
+1. Our own CNN predicts as before. The top 3 predictions with confidence, for example "Psoriasis 78%, Eczema 15%, Tinea 5%", are put into the system prompt.
+2. The user's question and the earlier messages go to Gemini (`gemini-3.5-flash` by default, change it with the `GEMINI_MODEL` variable).
+3. The answer is shown in the chat. If Gemini fails or is slow, the user sees a friendly message and the result above stays as it is.
+
+**What is sent to Gemini:** text only. That is the top predictions and the messages the user types. The photo, the user's name, email and account data are never sent. Users are told this under the chat box. Do not type personal details in the chat.
+
+**Safety rules** (in `backend/chat.py`)
+
+- It is a screening assistant, never a doctor, and never gives a final diagnosis.
+- It uses only the model result. Below 60% confidence (or when the app shows "Not sure") it says "not sure" and advises seeing a doctor.
+- No prescription medicines or doses, only general care tips.
+- A cancer-type label, or the user mentioning fever, fast-spreading redness, pus or severe pain, always gives "see a dermatologist soon" (a dentist for the oral check).
+- Short answers in the user's language, always ending with a one-line "AI screening, not a diagnosis" reminder.
+
+These rules are in the prompt and also checked again in code after the answer comes back, so the doctor advice, the "not sure" line and the reminder are added if the model forgets them. Limits: 500 characters per message, 20 questions per 10 minutes per user in the full app, 15 questions per result in the Streamlit demo.
+
+**Get a free API key**
+
+1. Open [Google AI Studio](https://aistudio.google.com/apikey) and sign in with a Google account.
+2. Click **Create API key** and copy it.
+3. Keep it secret. Never put it in the code, in a screenshot or on GitHub. The key is read from `GEMINI_API_KEY` only. The free tier has usage limits, so a busy public demo can show the "assistant is busy" message.
+
+**Run locally**
+
+Windows PowerShell:
+```
+$env:GEMINI_API_KEY="paste-your-key-here"
+python -m uvicorn backend.main:app --port 8000
+```
+Windows cmd: `set GEMINI_API_KEY=paste-your-key-here`. Linux or Mac: `export GEMINI_API_KEY=paste-your-key-here`.
+
+For the Streamlit version, create the file `.streamlit/secrets.toml` (it is in `.gitignore`):
+```
+GEMINI_API_KEY = "paste-your-key-here"
+```
+and run `streamlit run streamlit_app/streamlit_app.py`. On Streamlit Community Cloud, paste the same line in **Settings > Secrets**.
+
+Without a key the app still works. The chat just says it is not set up.
+
+## Deploy on Google Cloud Run
+
+The `Dockerfile` runs the FastAPI version. You need a Google Cloud project with billing enabled and the `gcloud` tool.
+
+```
+gcloud services enable run.googleapis.com secretmanager.googleapis.com cloudbuild.googleapis.com
+printf "paste-your-key-here" | gcloud secrets create gemini-api-key --data-file=-
+gcloud run deploy health-check --source . --region asia-south1 --allow-unauthenticated \
+  --memory 2Gi --cpu 2 --max-instances 1 --set-secrets GEMINI_API_KEY=gemini-api-key:latest
+```
+
+Notes:
+- The service account that runs the service needs the *Secret Manager Secret Accessor* role on that secret.
+- `--max-instances 1` is on purpose. Accounts and history are in SQLite inside the container, so they are lost when the container restarts. For a real launch, move them to Cloud SQL or Firestore.
+- Use HTTPS (Cloud Run gives it) before sharing the link, and keep the disclaimer on.
+- The first request after a quiet time is slow because TensorFlow loads the models.
+
 ## Privacy
 
 - The Streamlit version keeps photos only in memory while the result is made. Nothing is saved.
 - The full version stores photos and results in a local `data/` folder, which is in `.gitignore`. A user can delete their account and everything with it. Passwords are hashed with PBKDF2.
-- Never upload `data/`, API tokens or `kaggle.json` to GitHub.
+- The chat sends only text to Google Gemini (see the Chatbot section). Never upload `data/`, API keys, tokens, `.env`, `secrets.toml` or `kaggle.json` to GitHub.
 
 ## Tests
 
@@ -105,4 +169,4 @@ python -m pytest -q
 
 ## Not done yet
 
-Forgot-password by email, push notifications while the app is closed, estimating height from a photo, and a chatbot.
+Forgot-password by email, push notifications while the app is closed, and estimating height from a photo.

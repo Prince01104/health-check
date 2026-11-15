@@ -15,6 +15,7 @@ const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
 const state = {
   lang: store.get("hc_lang") === "hi" ? "hi" : "en",
   checks: [], me: null, current: null, picked: null, pickedUrl: null, histFilter: "all", resultView: "photo", busy: false,
+  chat: { id: null, msgs: [], busy: false },
 };
 
 // -------------------------------------------------------------------- icons
@@ -368,14 +369,87 @@ function resultScreen(r, fromHistory) {
       <p class="muted tiny" id="heatNote" ${state.resultView === "heat" ? "" : "hidden"}>${esc(t("heatNote"))}</p>` : ""}
     ${head}${qual}${body}
     <div class="card"><h3>${esc(t("others"))}</h3>${probs}</div>
+    ${chatCard(r)}
     <a class="btn outline" href="https://www.google.com/maps/search/${q}" target="_blank" rel="noopener">${icon("map")} ${esc(t("findDoc", doc))}</a>
     <button class="btn outline" data-action="pdf" data-id="${r.id}">${icon("download")} ${esc(t("report"))}</button>
     <button class="btn" data-go="check/${r.check}">${esc(t("again"))}</button>
     ${fromHistory ? `<button class="btn danger sm" data-action="delone" data-id="${r.id}">${icon("trash")} ${esc(t("deleteOne"))}</button>` : ""}
   </div>
   ${disclaimer()}`, fromHistory ? "history" : "home");
+  paintChat();
 }
 T.en.back = "Back"; T.hi.back = "वापस";
+
+// ---------------------------------------------------------- chat (Gemini) about a result
+Object.assign(T.en, {
+  chatTitle: "Ask about this result", chatSub: "AI assistant, not a doctor. It only uses the result above.",
+  chatPh: "Type your question", chatSend: "Send", chatThinking: "Thinking...",
+  chatPrivacy: "Your photo is not sent. Only the result text and your messages go to Google Gemini.",
+  chatQ: ["What can this be?", "Basic care tips", "When should I see a doctor?"],
+  chatOff: "The chat assistant is not set up on this server yet. Your result above is still valid.",
+  chatBusy: "The assistant is busy right now. Please try again in a minute. Your result above is still valid.",
+  chatTimeout: "The assistant took too long to answer. Please try again. Your result above is still valid.",
+  chatUnavail: "The assistant is not available right now. Please try again later. Your result above is still valid.",
+});
+Object.assign(T.hi, {
+  chatTitle: "इस नतीजे के बारे में पूछें", chatSub: "AI सहायक, डॉक्टर नहीं। यह सिर्फ ऊपर दिए नतीजे का इस्तेमाल करता है।",
+  chatPh: "अपना सवाल लिखें", chatSend: "भेजें", chatThinking: "सोच रहा है...",
+  chatPrivacy: "आपकी फोटो नहीं भेजी जाती। सिर्फ नतीजे का टेक्स्ट और आपके संदेश Google Gemini को जाते हैं।",
+  chatQ: ["यह क्या हो सकता है?", "देखभाल के आसान तरीके", "डॉक्टर को कब दिखाएं?"],
+  chatOff: "इस सर्वर पर चैट सहायक अभी चालू नहीं है। ऊपर का नतीजा फिर भी सही है।",
+  chatBusy: "सहायक अभी व्यस्त है। कृपया एक मिनट बाद फिर कोशिश करें। ऊपर का नतीजा फिर भी सही है।",
+  chatTimeout: "सहायक को जवाब देने में बहुत देर लगी। कृपया फिर कोशिश करें। ऊपर का नतीजा फिर भी सही है।",
+  chatUnavail: "सहायक अभी उपलब्ध नहीं है। कृपया बाद में फिर कोशिश करें। ऊपर का नतीजा फिर भी सही है।",
+});
+
+function chatCard(r) {
+  if (r.status === "invalid") return "";          // no usable result to talk about
+  if (state.chat.id !== r.id) state.chat = { id: r.id, msgs: [], busy: false };
+  return `<div class="card chat" id="chatCard"><h3>${esc(t("chatTitle"))}</h3><p class="muted tiny">${esc(t("chatSub"))}</p>
+    <div class="chatlog" id="chatLog" aria-live="polite"></div>
+    <div class="chips">${t("chatQ").map((q, i) => `<button type="button" class="chip" data-action="chatq" data-q="${i}">${esc(q)}</button>`).join("")}</div>
+    <form id="chatForm" class="chatform" autocomplete="off"><input id="chatIn" type="text" maxlength="500" placeholder="${esc(t("chatPh"))}" aria-label="${esc(t("chatPh"))}">
+      <button class="btn sm" type="submit" id="chatSend">${esc(t("chatSend"))}</button></form>
+    <p class="muted tiny" style="margin-top:8px">${esc(t("chatPrivacy"))}</p></div>`;
+}
+
+function paintChat() {
+  const log = $("#chatLog");
+  if (!log) return;
+  log.textContent = "";
+  for (const m of state.chat.msgs) {
+    const d = document.createElement("div");
+    d.className = "bub " + (m.role === "user" ? "u" : m.role === "err" ? "e" : "b");
+    d.textContent = m.text;                      // textContent: the answer is never treated as HTML
+    log.appendChild(d);
+  }
+  if (state.chat.busy) { const d = document.createElement("div"); d.className = "bub b"; d.textContent = t("chatThinking"); log.appendChild(d); }
+  log.hidden = !log.childNodes.length;
+  log.scrollTop = log.scrollHeight;
+  const inp = $("#chatIn"), btn = $("#chatSend");
+  if (inp) inp.disabled = state.chat.busy;
+  if (btn) btn.disabled = state.chat.busy;
+}
+
+async function sendChat(text) {
+  text = (text || "").trim().slice(0, 500);
+  const c = state.chat;
+  if (!text || c.busy || !c.id) return;
+  const history = c.msgs.filter((m) => m.role !== "err").slice(-16).map((m) => ({ role: m.role === "user" ? "user" : "model", text: m.text }));
+  c.msgs.push({ role: "user", text }); c.busy = true; paintChat();
+  const id = c.id;
+  let out;
+  try { out = await api("/api/chat", { method: "POST", body: { history_id: id, message: text, history } }); }
+  catch (e) { if (e.message === "auth") return; out = { ok: false, error: "msg", msg: e.message }; }
+  if (state.chat.id !== id) return;              // user moved to another result meanwhile
+  c.busy = false;
+  if (out.ok) c.msgs.push({ role: "bot", text: out.reply });
+  else {
+    const key = { not_configured: "chatOff", busy: "chatBusy", timeout: "chatTimeout" }[out.error] || "chatUnavail";
+    c.msgs.push({ role: "err", text: out.error === "msg" ? out.msg : t(key) });
+  }
+  paintChat();
+}
 
 async function historyScreen() {
   loading();
@@ -478,6 +552,7 @@ document.addEventListener("click", async (ev) => {
     $$("[data-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === d.view)));
     return;
   }
+  if (d.action === "chatq") { sendChat(t("chatQ")[Number(d.q)]); return; }
   if (d.check && !d.action) {
     const c = state.checks.find((x) => x.id === d.check);
     if (c && !c.ready) { toast(t("soonText")); return; }
@@ -513,6 +588,12 @@ document.addEventListener("click", async (ev) => {
 });
 
 document.addEventListener("submit", async (ev) => {
+  if (ev.target.id === "chatForm") {
+    ev.preventDefault();
+    const inp = $("#chatIn"); const v = inp.value; inp.value = "";
+    sendChat(v);
+    return;
+  }
   if (ev.target.id !== "authForm") return;
   ev.preventDefault();
   const signup = !!$("#name"), err = $("#authErr"), btn = $("button[type=submit]", ev.target);

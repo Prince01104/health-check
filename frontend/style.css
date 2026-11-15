@@ -181,3 +181,18 @@ input:focus-visible, button:focus-visible, a:focus-visible, select:focus-visible
 #toast { position: fixed; left: 50%; bottom: 84px; transform: translate(-50%, 20px); background: #123b38; color: #fff; padding: 11px 16px;
   border-radius: 12px; font-size: 14px; max-width: 90%; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 20; }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- chat about a result ---------- */
+.chatlog { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 6px; max-height: 340px; overflow-y: auto; }
+.bub { padding: 9px 12px; border-radius: 14px; font-size: 14.5px; line-height: 1.45; white-space: pre-wrap; max-width: 92%; overflow-wrap: anywhere; }
+.bub.u { align-self: flex-end; background: var(--teal); color: #fff; border-bottom-right-radius: 4px; }
+.bub.b { align-self: flex-start; background: var(--mint); color: var(--ink); border-bottom-left-radius: 4px; }
+.bub.e { align-self: stretch; max-width: 100%; background: var(--warn-bg); color: var(--warn); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.chip { min-height: 38px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink);
+  font: inherit; font-size: 13.5px; cursor: pointer; }
+.chip:hover { background: var(--mint); }
+.chatform { display: flex; gap: 8px; }
+.chatform input { flex: 1; min-width: 0; height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--card); color: var(--ink); font: inherit; font-size: 16px; }
+.chatform .btn { width: auto; }

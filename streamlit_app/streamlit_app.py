@@ -8,6 +8,7 @@ import csv
 import datetime as dt
 import hmac
 import os
+import secrets
 import sys
 from pathlib import Path
 from urllib.parse import quote
@@ -17,6 +18,7 @@ from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+from backend import chat as gchat                        # noqa: E402
 from backend import ml                                   # noqa: E402
 from backend.content import DAILY_TIPS, describe         # noqa: E402
 
@@ -64,6 +66,15 @@ TX = {
         "fbTitle": "Was this result helpful?", "fbYes": "👍 Yes", "fbNo": "👎 No", "fbComment": "Anything we should improve? (optional)",
         "fbSend": "Send feedback", "fbThanks": "Thank you! Your feedback was saved.", "fbForm": "Give detailed feedback (form)",
         "fbNote": "Only your answer and comment are saved. The photo and your name are not saved.",
+        "chatTitle": "Ask about this result", "chatSub": "AI assistant, not a doctor. It only uses the result above.",
+        "chatPh": "Type your question", "chatThinking": "Thinking...",
+        "chatPrivacy": "Your photo is not sent. Only the result text and your messages go to Google Gemini.",
+        "chatQ": ["What can this be?", "Basic care tips", "When should I see a doctor?"],
+        "chatOff": "The chat assistant is not set up yet. Your result above is still valid.",
+        "chatBusy": "The assistant is busy right now. Please try again in a minute. Your result above is still valid.",
+        "chatTimeout": "The assistant took too long to answer. Please try again. Your result above is still valid.",
+        "chatUnavail": "The assistant is not available right now. Please try again later. Your result above is still valid.",
+        "chatLimit": "You have reached the question limit for this result. Please start a new check.",
         "badFile": "This file is not a valid photo.", "err": "Something went wrong with this photo. Please try another one.",
         "tipsBy": {
             "oral": ["Open your mouth wide and face the camera straight.", "Use bright light. Avoid flash glare.", "Show the teeth, gums or sore area up close.", "Keep the phone steady."],
@@ -99,6 +110,15 @@ TX = {
         "fbTitle": "क्या यह नतीजा काम का था?", "fbYes": "👍 हां", "fbNo": "👎 नहीं", "fbComment": "हम क्या बेहतर करें? (ज़रूरी नहीं)",
         "fbSend": "फीडबैक भेजें", "fbThanks": "धन्यवाद! आपका फीडबैक सेव हो गया।", "fbForm": "विस्तार से फीडबैक दें (फॉर्म)",
         "fbNote": "सिर्फ आपका जवाब और कमेंट सेव होता है। फोटो और आपका नाम सेव नहीं होते।",
+        "chatTitle": "इस नतीजे के बारे में पूछें", "chatSub": "AI सहायक, डॉक्टर नहीं। यह सिर्फ ऊपर दिए नतीजे का इस्तेमाल करता है।",
+        "chatPh": "अपना सवाल लिखें", "chatThinking": "सोच रहा है...",
+        "chatPrivacy": "आपकी फोटो नहीं भेजी जाती। सिर्फ नतीजे का टेक्स्ट और आपके संदेश Google Gemini को जाते हैं।",
+        "chatQ": ["यह क्या हो सकता है?", "देखभाल के आसान तरीके", "डॉक्टर को कब दिखाएं?"],
+        "chatOff": "चैट सहायक अभी चालू नहीं है। ऊपर का नतीजा फिर भी सही है।",
+        "chatBusy": "सहायक अभी व्यस्त है। कृपया एक मिनट बाद फिर कोशिश करें। ऊपर का नतीजा फिर भी सही है।",
+        "chatTimeout": "सहायक को जवाब देने में बहुत देर लगी। कृपया फिर कोशिश करें। ऊपर का नतीजा फिर भी सही है।",
+        "chatUnavail": "सहायक अभी उपलब्ध नहीं है। कृपया बाद में फिर कोशिश करें। ऊपर का नतीजा फिर भी सही है।",
+        "chatLimit": "इस नतीजे के लिए सवालों की सीमा पूरी हो गई। कृपया नई जांच करें।",
         "badFile": "यह फाइल सही फोटो नहीं है।", "err": "इस फोटो में कुछ गड़बड़ हुई। कृपया दूसरी फोटो आज़माएं।",
         "tipsBy": {
             "oral": ["मुंह पूरा खोलें और कैमरे की तरफ सीधे देखें।", "तेज़ रोशनी लें। फ्लैश की चमक से बचें।", "दांत, मसूड़े या घाव की पास से फोटो लें।", "फोन को स्थिर रखें।"],
@@ -171,7 +191,7 @@ def analyse(check: str, file) -> dict:
     res = ml.predict(check, img)
     cam = res.pop("cam")
     base, blended = ml.overlay(img, cam)
-    res.update({"check": check, "quality": quality, "base": base, "heat": blended, "demo": ml.is_dummy(check)})
+    res.update({"rid": secrets.token_hex(4), "check": check, "quality": quality, "base": base, "heat": blended, "demo": ml.is_dummy(check)})
     return res
 
 
@@ -181,6 +201,8 @@ ss.setdefault("view", "home")
 ss.setdefault("check", None)
 ss.setdefault("result", None)
 ss.setdefault("fb_done", False)
+ss.setdefault("chat", [])
+ss.setdefault("chat_for", None)
 
 top = st.columns([3, 2])
 with top[1]:
@@ -198,8 +220,53 @@ with st.spinner(t["loadingModels"]):
 def go(view, check=None):
     ss.view, ss.check = view, check
     if view != "result":
-        ss.result, ss.fb_done = None, False
+        ss.result, ss.fb_done, ss.chat, ss.chat_for = None, False, [], None
 
+
+
+MAX_QUESTIONS = 15          # per result, keeps the free Gemini quota safe on a public demo
+
+
+def chat_section(r, doc_key):
+    """Chat box under the result. Gemini only gets text (top predictions + the user's messages), never the photo."""
+    if ss.chat_for != r["rid"]:
+        ss.chat, ss.chat_for = [], r["rid"]
+    st.divider()
+    st.markdown(f"**{t['chatTitle']}**")
+    st.caption(t["chatSub"])
+    for m in ss.chat:
+        with st.chat_message("user" if m["role"] == "user" else "assistant"):
+            if m["role"] == "err":
+                st.warning(m["text"])
+            else:
+                st.write(m["text"])
+    box = st.container()
+    with box:
+        qcols = st.columns(3)
+        question = None
+        for i, q in enumerate(t["chatQ"]):
+            if qcols[i].button(q, key=f"chatq_{i}", use_container_width=True):
+                question = q
+        typed = st.chat_input(t["chatPh"], key="chat_in")
+    question = typed or question
+    st.caption(t["chatPrivacy"])
+    if not question:
+        return
+    asked = sum(1 for m in ss.chat if m["role"] == "user")
+    if asked >= MAX_QUESTIONS:
+        ss.chat.append({"role": "err", "text": t["chatLimit"]})
+        st.rerun()
+    history = [{"role": m["role"], "text": m["text"]} for m in ss.chat if m["role"] != "err"]
+    ss.chat.append({"role": "user", "text": question.strip()[:gchat.MAX_MESSAGE]})
+    with st.spinner(t["chatThinking"]):
+        out = gchat.ask(r["check"], r["label"], r["confidence"], r["status"], r["probs"], history, question,
+                        doctor=DOCTOR_OF[r["check"]], api_key=_secret("GEMINI_API_KEY"))
+    if out["ok"]:
+        ss.chat.append({"role": "assistant", "text": out["reply"]})
+    else:
+        key = {"not_configured": "chatOff", "busy": "chatBusy", "timeout": "chatTimeout"}.get(out["error"], "chatUnavail")
+        ss.chat.append({"role": "err", "text": t[key]})
+    st.rerun()
 
 # ------------------------------------------------------------------- views
 def view_home():
@@ -318,6 +385,9 @@ def view_result():
     with st.expander(t["others"]):
         for p in r["probs"][:4]:
             st.progress(min(max(p["p"], 0.0), 1.0), text=f'{label_name(p["label"], lang)}  {p["p"]:.0%}')
+
+    if status != "invalid":
+        chat_section(r, doc_key)
 
     st.link_button(f"📍 {t['findDoc'].format(d=doc)}", "https://www.google.com/maps/search/" + quote(f"{DOCTOR_Q[doc_key]} near me"),
                    use_container_width=True)

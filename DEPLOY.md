@@ -25,6 +25,15 @@ Koi bhi link kholkar app use kar sakega aur feedback de sakega. Login nahi hai (
   Result page par "detailed feedback (form)" button aa jayega. Form ke jawab Google Sheet mein hamesha rahenge.
 - Quick feedback dekhne ke liye: `https://<app>.streamlit.app/?admin=<ADMIN_KEY>`.
 
+## 4. Chatbot (Gemini) chalane ke liye
+1. aistudio.google.com/apikey par free API key banao.
+2. Streamlit app ke **Settings > Secrets** mein ye line daalo (key kabhi GitHub par mat daalna):
+   ```
+   GEMINI_API_KEY = "teri-key-yahan"
+   ```
+3. **Reboot app** dabao. Key na ho to app chalta rahega, bas chat "not set up" bolega.
+Chat sirf text bhejta hai (result ka top-3 aur user ke sawal). Photo kabhi nahi jaati. Free key ki limit hoti hai, isliye bahut log aaye to "assistant is busy" dikh sakta hai.
+
 ## Dhyan rakhne ki baatein
 - App 12 ghante koi na aaye to so jata hai; pehle visitor ko "Wake up" dabana padta hai (30-60 sec).
 - Free RAM kam hai (~2.7 GB). 2 se 4 chhote CNN models theek chalte hain.

@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from PIL import Image, ImageOps
 from pydantic import BaseModel
 
-from . import db, ml
+from . import chat, db, ml
 from .content import DAILY_TIPS, describe
 from .report import build_pdf
 
@@ -268,6 +268,33 @@ def predict(check: str, file: UploadFile = File(...), user=Depends(current_user)
     if blended is not None:
         Image.fromarray(blended).save(db.UPLOADS / f"{hid}_heat.png")
     return payload(row)
+
+
+# --------------------------------------------------------------------- chat
+class ChatTurn(BaseModel):
+    role: str
+    text: str
+
+
+class ChatIn(BaseModel):
+    history_id: int
+    message: str
+    history: list[ChatTurn] = []
+
+
+@app.post("/api/chat")
+def chat_about_result(body: ChatIn, user=Depends(current_user)):
+    """Ask Gemini a question about one saved result. The CNN result is read from our own database
+    (never trusted from the browser) and only text is sent to Gemini: no photo, no name, no email."""
+    row = own_row(body.history_id, user)
+    if not body.message.strip():
+        raise HTTPException(400, "Please type a question.")
+    if len(body.history) > 40:
+        raise HTTPException(400, "This conversation is too long. Please start a new check.")
+    throttle(f"chat:{user['id']}", limit=20, window=600)
+    return chat.ask(row["check_type"], row["label"], row["confidence"], row["status"],
+                    json.loads(row["probs"]), [t.model_dump() for t in body.history], body.message,
+                    doctor=CHECK_META[row["check_type"]]["doctor"])
 
 
 # ------------------------------------------------------------------ history
