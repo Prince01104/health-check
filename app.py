@@ -18,8 +18,9 @@ PAGES = {
     "logout": (vm.logout, "light", None),
     "check": (vc.check, "light", "home"),
     "acne": (vc.acne, "light", "home"),
-    "progress": (vc.progress, "light", "home"),
-    "connect": (vc.connect, "light", "home"),
+    "progress": (vc.progress, "light", "history"),
+    "aira": (vc.aira, "light", "home"),
+    "tips": (vc.tips, "light", "home"),
     "sleep": (vc.sleep, "dark", None),
     "insomnia": (vc.insomnia, "dark", None),
 }
@@ -35,7 +36,6 @@ def init_state() -> None:
         "history": [],
         "risk": dict(triage.DEFAULT_RISK),
         "confirm_delete": False,
-        "waitlisted": False,
         "sleep_on": False,
         "sleep_end": 0.0,
         "acne_log": [{"score": s, "sample": True} for s in (62, 58, 55, 47, 44, 38)],
@@ -62,8 +62,8 @@ else:
 if S.admin_ok(st.query_params.get("admin", "")):
     import pandas as pd
 
-    with st.expander("Admin: feedback and waitlist"):
-        for name in ("feedback.csv", "waitlist.csv"):
+    with st.expander("Admin: feedback"):
+        for name in ("feedback.csv",):
             path = S.DATA_DIR / name
             if path.exists():
                 st.write(name)

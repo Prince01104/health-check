@@ -33,69 +33,69 @@ def login() -> None:
 
 
 # ------------------------------------------------------------------ home
+BENTO = {
+    # key: (container class, colour, icon svg path content, title, subtitle, page, check key)
+    "aira": ("#E4E1F8", "#5B4BC4", '<path d="M21 12a8 8 0 01-8 8H6l-3 3V12a8 8 0 018-8h2a8 8 0 018 8z"/>', "Talk with Aira", "Ask about your result", "aira", None),
+    "skin": ("#FADDCF", "#B4531A", '<circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2.5 4 2.5S16 14 16 14M9 9.5h.01M15 9.5h.01"/>', "Skin check", "Acne, tinea, eczema", "check", "skin"),
+    "oral": ("#DCE8B2", "#3D5A12", '<path d="M12 6C10 3 5 4 5 9c0 4 1.5 6 2.5 9 .5 2 2.5 2 3 0 .4-1.5 1.6-1.5 2 0 .5 2 2.5 2 3 0 1-3 2.5-5 2.5-9 0-5-5-6-5.5-3z"/>', "Oral check", "Gums, ulcers, teeth", "check", "oral"),
+    "acne": ("#FAE5B5", "#8A5A00", '<path d="M3 7l6 6 4-4 8 8"/>', "Acne tracker", "Weekly progress", "acne", None),
+    "sleep": ("#D5E4F5", "#1F4E8C", '<path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/>', "Sleep mode", "Sounds and timer", "sleep", None),
+    "insomnia": ("#DCEDE5", "#0B6B45", '<rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 9h6M9 13h6M9 17h3"/>', "Insomnia check", "5 quick questions", "insomnia", None),
+    "tips": ("#F8DCE8", "#9B2C5E", '<path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0012 3z"/>', "Health tips", "News and care ideas", "tips", None),
+}
+
+
+def _tile(key: str, height: int) -> None:
+    bg, fg, icon, title, sub, page, check_key = BENTO[key]
+    with st.container(key=f"bt_{key}"):
+        ui.html(
+            f'<div class="bt-in" style="height:{height}px">'
+            f'<div class="bt-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{fg}" stroke-width="2.2" '
+            f'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{icon}</svg></div>'
+            + ('<div class="bt-art" aria-hidden="true"><span style="background:#F2A88C"></span><span style="background:#9A8FE0"></span></div>' if key == "aira" else "")
+            + f'<div><div class="bt-t">{title}</div><div class="bt-s">{sub}</div></div></div>'
+        )
+        kwargs = {"check_key": check_key} if check_key else {}
+        st.button(f"Open {title}", key=f"tile_{key}", on_click=ui.go, args=(page,), kwargs=kwargs)
+
+
 def home() -> None:
     name = st.session_state.get("name", "")
     ui.html(f"""
-    <div class="hc-top">
-      <div><div class="hc-hello">Hello, {ui.esc(name) if name else "there"} &#128075;</div>
-      <div class="hc-sub">Take care today, for a healthier tomorrow.</div></div>
-      <div class="hc-avatar">{ui.esc((name[:1] or "G").upper())}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:4px 0 14px 0">
+      <div><div class="hc-greet-a">{S.greeting()}</div><div class="hc-greet-b">{ui.esc(name) if name else "there"}</div></div>
+      <div style="flex:none;width:64px;height:64px;border-radius:50%;background:#0B6665;display:flex;align-items:flex-end;justify-content:center;overflow:hidden">{ui.aira(60, suffix="hm")}</div>
     </div>
     """)
-    with st.container(key="hero"):
-        left, right = st.columns([3, 2])
-        with left:
-            ui.html('<div class="hero-t">Your Health,<br>Our Priority &#10084;&#65039;</div>'
-                    '<div class="hero-s">AI Health Screening<br>for a Better You</div>')
-            st.button("Start Scanning \u2192", key="hero_go", on_click=ui.go, args=("check",), kwargs={"check_key": "skin"})
-        with right:
-            ui.html(f'<div style="display:flex;justify-content:center;align-items:center;height:100%">{ui.shield(118)}</div>')
+    left, right = st.columns(2)
+    with left:
+        _tile("aira", 290)
+    with right:
+        _tile("skin", 122)
+        _tile("oral", 122)
 
-    st.markdown("### Categories")
-    keys = list(S.CHECKS)
-    for row in (keys[:2], keys[2:]):
-        cols = st.columns(2)
-        for col, key in zip(cols, row):
-            cfg = S.CHECKS[key]
-            ready = S.model_ready(key)
-            with col, st.container(key=f"cat_{key}"):
-                ui.html(f'<div class="cat-ic">{ui.ICONS[key]}</div><div class="cat-t">{ui.esc(cfg["title"])}</div>'
-                        f'<div class="cat-s">{ui.esc(cfg["blurb"])}</div>')
-                st.button("Scan Now \u2192" if ready else "Coming soon", key=f"tile_{key}", on_click=ui.go,
-                          args=("check",), kwargs={"check_key": key}, disabled=not ready)
+    st.markdown("### Care")
+    a, b = st.columns(2)
+    with a:
+        _tile("acne", 84)
+    with b:
+        _tile("sleep", 84)
 
-    with st.container(key="aihelp"):
-        left, right = st.columns([3, 1.6])
-        with left:
-            ui.html(f'<div style="display:flex;gap:10px;align-items:center"><div style="flex:none">{ui.aira(46, suffix="ah")}</div>'
-                    '<div><div class="ai-t">AI Help</div><div class="ai-s">Check first, then ask Aira.</div></div></div>')
-        with right:
-            st.button("Explore \u2192", key="aihelp_go", on_click=ui.go, args=("check",), kwargs={"check_key": "skin"})
-
-    st.markdown("### Care and wellbeing")
-    extras = [
-        ("progress", "My Progress", ":material/timeline:"),
-        ("acne", "Acne Tracker", ":material/trending_down:"),
-        ("sleep", "Sleep Mode", ":material/bedtime:"),
-        ("connect", "Feeling lonely?", ":material/favorite:"),
-    ]
-    for pair in (extras[:2], extras[2:]):
-        cols = st.columns(2)
-        for col, (page, title, icon) in zip(cols, pair):
-            with col:
-                st.button(title, icon=icon, key=f"extra_{page}", on_click=ui.go, args=(page,))
-
-    st.markdown("### Health Tips")
-    ui.card('<div class="tip-row"><svg width="34" height="34" viewBox="0 0 40 40" style="flex:none"><path d="M20 3L35 9V20C35 29 28 35 20 38C12 35 5 29 5 20V9Z" fill="#17A34A"/>'
-            '<path d="M12 20l6 6 11-12" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-            f'<div><div class="t">Tip of the day</div><div class="s">{ui.esc(S.daily_tip())}</div></div></div>')
-    st.caption("AI screening only. See a doctor for a real diagnosis.")
+    st.markdown("### Support")
+    a, b = st.columns(2)
+    with a:
+        _tile("insomnia", 84)
+    with b:
+        _tile("tips", 84)
+    st.markdown('<p class="hc-foot">AI screening only. See a doctor for a real diagnosis.</p>', unsafe_allow_html=True)
 
 
 # ------------------------------------------------------------------ history
 def history() -> None:
     st.markdown("# History")
     st.caption("Results from this visit. They are not stored after you close the app.")
+    st.button("Open My Progress: trends, change alerts and your summary", icon=":material/timeline:", key="open_progress",
+              on_click=ui.go, args=("progress",), type="primary")
     entries = st.session_state.get("history", [])
     for e in reversed(entries):
         if e["status"] == "ok":

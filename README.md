@@ -15,7 +15,8 @@ It is a screening aid. It is not a doctor and it never gives a diagnosis.
   The model was not trained on photo pairs and the thresholds are not clinically validated.
 - **My Progress**: timeline, trend chart, a plain-text summary to show a doctor, and a progress file to continue next visit.
 - **Ask Aira**: a Gemini chat about the result. Only text goes to Gemini, never the photo. Safety rules are enforced in code.
-- Acne Tracker, Sleep Mode and an honest "Feeling lonely?" page with Tele-MANAS 14416. Peer calling is **not live** and is labelled as coming soon.
+- **Home** is a colourful tile screen: Talk with Aira, Skin check, Oral check, Acne tracker, Sleep mode, Insomnia check and Health tips.
+- **Health tips** shows today's health headlines (public RSS feeds, cached for an hour, links open the publisher) and simple care ideas. If no feed can be reached, only the care ideas show.
 
 ## Privacy
 - Photos are checked in memory and never saved. A tiny thumbnail stays in memory for this visit only.
@@ -40,7 +41,7 @@ On Streamlit Cloud, paste `GEMINI_API_KEY = "..."` in App settings > Secrets. Ne
 New app > this repo > main file `app.py` > Advanced settings: Python 3.12 > Secrets. Files saved on the server (feedback.csv) are cleared when the app restarts.
 
 ## Tests
-`python -m pytest -q tests` (48 tests, no internet and no API key needed; Gemini is faked).
+`python -m pytest -q tests` (55 tests, no internet and no API key needed; Gemini is faked).
 
 ## Honest limits
 Skin model: about 79% test accuracy and it over-predicts tinea. Oral model: about 96% on its test set, partly helped by photo style.

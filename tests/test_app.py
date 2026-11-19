@@ -69,7 +69,7 @@ def test_login_is_guest_mode_and_has_no_password_box():
     assert "&lt;b&gt;Prince&lt;/b&gt;" in texts(at) and "<b>Prince</b>" not in texts(at)   # name is escaped
 
 
-@pytest.mark.parametrize("page", ["home", "history", "profile", "logout", "check", "acne", "connect", "sleep", "insomnia"])
+@pytest.mark.parametrize("page", ["home", "history", "profile", "logout", "check", "acne", "aira", "tips", "progress", "sleep", "insomnia"])
 def test_every_page_renders(page):
     at = app(page)
     assert not at.exception, at.exception
@@ -77,9 +77,9 @@ def test_every_page_renders(page):
 
 def test_home_marks_untrained_checks_coming_soon():
     at = app("home")
-    assert at.button(key="tile_infection").disabled and at.button(key="tile_nail").disabled
-    assert not at.button(key="tile_oral").disabled and not at.button(key="tile_skin").disabled
-    assert at.button(key="tile_nail").label == "Coming soon" and at.button(key="tile_skin").label.startswith("Scan Now")
+    for key in ("aira", "skin", "oral", "acne", "sleep", "insomnia", "tips"):
+        assert not at.button(key=f"tile_{key}").disabled, key
+    assert not [b for b in at.button if "Feeling lonely" in b.label]        # the lonely feature is gone
 
 
 def test_unready_check_says_coming_soon():
@@ -193,10 +193,3 @@ def test_insomnia_scores():
     assert "Possible insomnia" in texts(at)
 
 
-def test_connect_is_honest_and_notify_works(env):
-    at = app("connect")
-    t = texts(at)
-    assert not at.exception and "14416" in t and "Nothing here verifies you" in t
-    assert "Verified" not in t.replace("Verify you are an adult", "")
-    at.button(key="notify_me").click().run()
-    assert at.session_state["waitlisted"] and (S.DATA_DIR / "waitlist.csv").exists()

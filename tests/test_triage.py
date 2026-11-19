@@ -156,3 +156,44 @@ def test_doctor_summary_has_disclaimer_and_no_photo(state):
     state.history.append({**entry(), "alert_lines": ["The result changed."], "next_step": "See a doctor soon"})
     text = S.summary_for_doctor()
     assert "not a diagnosis" in text and "ALERT: The result changed." in text and "Photos are not included" in text
+
+
+# ------------------------------------------------------------------ news
+import news  # noqa: E402
+
+RSS = b"""<?xml version="1.0"?><rss><channel>
+<item><title>Why sleep matters for skin - Example Times</title><link>https://example.com/a</link><source url="https://example.com">Example Times</source><pubDate>Thu, 19 Nov 2026 10:00:00 GMT</pubDate></item>
+<item><title>Man killed in road row - Local</title><link>https://example.com/b</link></item>
+<item><title>Plain http link</title><link>http://example.com/c</link></item>
+<item><title>Why sleep matters for skin - Example Times</title><link>https://example.com/dup</link><source url="x">Example Times</source></item>
+<item><title>Drink water in summer</title><link>https://example.com/d</link></item>
+</channel></rss>"""
+
+
+def test_news_parse_cleans_filters_and_keeps_only_https():
+    items = news.parse(RSS)
+    titles = [i["title"] for i in items]
+    assert "Why sleep matters for skin" in titles and items[0]["source"] == "Example Times"
+    assert all(i["link"].startswith("https://") for i in items)
+    assert not any("killed" in x for x in titles) and "Plain http link" not in titles
+
+
+def test_news_headlines_dedupes_and_falls_back_between_feeds():
+    calls = []
+    def fetch(url):
+        calls.append(url)
+        if len(calls) == 1:
+            raise OSError("down")
+        return RSS
+    out = news.headlines(5, fetch=fetch)
+    assert len(calls) == 2 and [i["title"] for i in out].count("Why sleep matters for skin") == 1
+
+
+def test_news_all_feeds_down_gives_empty_list_not_an_error():
+    def boom(url): raise TimeoutError("slow")
+    assert news.headlines(5, fetch=boom) == []
+
+
+@pytest.mark.parametrize("bad", [b"not xml", b"", b'<!DOCTYPE x [<!ENTITY a "b">]><rss/>'])
+def test_news_refuses_bad_or_entity_feeds(bad):
+    assert news.parse(bad) == []

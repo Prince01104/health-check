@@ -17,6 +17,7 @@ from PIL import Image, ImageOps
 import chat as gchat
 import content
 import ml
+import news
 import triage
 
 Image.MAX_IMAGE_PIXELS = 40_000_000
@@ -98,6 +99,18 @@ def analyse(key: str, file) -> dict:
                ts=dt.datetime.now().isoformat(timespec="seconds"), time=dt.datetime.now().strftime("%d %b, %H:%M"),
                brightness=quality["brightness"], thumb=Image.fromarray(base).resize((160, max(1, int(160 * base.shape[0] / base.shape[1])))))
     return res
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def health_news() -> list:
+    """Today's headlines, cached for an hour so the feeds are not hit on every click. [] when no feed works."""
+    return news.headlines(5)
+
+
+def greeting() -> str:
+    """Time-of-day greeting in Indian time (the server clock is UTC)."""
+    hour = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=5, minutes=30)).hour
+    return "Hello," if hour < 5 else "Good morning," if hour < 12 else "Good afternoon," if hour < 17 else "Good evening,"
 
 
 def daily_tip() -> str:
@@ -215,7 +228,7 @@ def ask_aira(res: dict, question: str) -> dict:
                      doctor=CHECKS[res["check"]]["doctor"], api_key=_secret("GEMINI_API_KEY"), persona=PERSONA)
 
 
-# --------------------------------------------------------------- feedback and waitlist (saved to a CSV on the server)
+# --------------------------------------------------------------- feedback (saved to a CSV on the server)
 def _append_csv(name: str, header: list, row: list) -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     path = DATA_DIR / name
@@ -236,10 +249,6 @@ def save_feedback(res: dict, helpful: str, comment: str) -> None:
     _append_csv("feedback.csv", ["time_utc", "check", "label", "confidence", "status", "helpful", "comment"],
                 [_now(), res["check"], res["label"], round(res["confidence"], 3), res["status"], helpful,
                  comment.strip()[:500].replace("\n", " ")])
-
-
-def save_interest(feature: str) -> None:
-    _append_csv("waitlist.csv", ["time_utc", "feature"], [_now(), feature])
 
 
 def feedback_form_url():

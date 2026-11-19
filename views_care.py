@@ -1,4 +1,4 @@
-"""Check, acne tracker, sleep, insomnia and connect screens."""
+"""Check, progress, Aira chat, tips and news, acne tracker, sleep and insomnia screens."""
 import hashlib
 import io
 import time
@@ -507,48 +507,45 @@ def insomnia() -> None:
     st.button("Play sleep sounds", type="primary", key="ins_to_sleep", on_click=ui.go, args=("sleep",))
 
 
-# =================================================================== CONNECT
-def _step(num: str, title: str, text: str, state: str) -> str:
-    return (f'<div class="hc-step {state}"><div class="hc-num">{num}</div>'
-            f'<div><div style="font-size:15px;font-weight:800">{title}</div>'
-            f'<div class="hc-muted">{text}</div></div></div>')
-
-
-def _notify() -> None:
-    S.save_interest("peer-call")
-    st.session_state.waitlisted = True
-
-
-def connect() -> None:
+# =================================================================== TALK WITH AIRA
+def aira() -> None:
     ui.back_button("home")
-    st.markdown("# Feeling lonely?")
-    ui.card(
-        '<div style="font-size:18px;font-weight:800;color:#5A1633">You do not have to carry it alone.</div>'
-        '<div style="font-size:14px;line-height:1.45;color:#5A1633">Talking to someone who listens can really help. '
-        'You can reach a trained counsellor free of charge, right now.</div>',
-        "background:#FCE8EF;border-color:#FCE8EF",
-    )
+    st.markdown("# Talk with Aira")
+    results = st.session_state.get("results", {})
+    if not results:
+        ui.card('<div style="font-weight:800;font-size:17px">Run a check first</div>'
+                '<div class="hc-muted" style="margin-top:4px">Aira explains your result in simple words. '
+                'Take a Skin or Oral check, then come back here or ask on the result screen.</div>')
+        left, right = st.columns(2)
+        left.button("Skin check", key="aira_go_skin", on_click=ui.go, args=("check",), kwargs={"check_key": "skin"})
+        right.button("Oral check", key="aira_go_oral", on_click=ui.go, args=("check",), kwargs={"check_key": "oral"})
+        st.caption("AI assistant, not a doctor. It cannot diagnose.")
+        return
+    key = max(results, key=lambda k: results[k]["ts"])
+    res = results[key]
+    title = S.pretty(res["label"]) if res["status"] == "ok" else "Not sure"
+    ui.card(f'<div class="hc-muted" style="font-weight:700">YOUR LATEST RESULT &#183; {ui.esc(S.CHECKS[key]["title"].upper())}</div>'
+            f'<div style="font-size:20px;font-weight:800">{ui.esc(title)}</div>'
+            f'<div class="hc-muted">{ui.esc(res["next"]["title"])}</div>')
+    _chat(key, res)
 
-    ui.html(
-        '<div class="hc-card"><div style="font-size:12px;font-weight:800" class="hc-muted">TALK TO SOMEONE TODAY (INDIA)</div>'
-        '<div style="font-size:18px;font-weight:800;margin:4px 0">Tele-MANAS: 14416</div>'
-        '<div class="hc-muted">Free, 24 hours a day, in many Indian languages. You can also dial 1800-891-4416.</div>'
-        '<a href="tel:14416" style="display:block;margin-top:12px;text-align:center;padding:14px;border-radius:16px;'
-        'background:#0B6665;color:#FFFFFF;font-weight:800;text-decoration:none">Call 14416</a></div>'
-    )
-    st.caption("If you are in danger or thinking of harming yourself, call 112 or go to the nearest hospital now.")
 
-    st.markdown("### Peer calls: coming soon")
-    ui.html(
-        _step("1", "Verify you are an adult", "Planned with DigiLocker. Your documents would stay in DigiLocker.", "off")
-        + _step("2", "Sign the safe-use promise", "Respectful and safe use for everyone.", "off")
-        + _step("3", "Start a 1 on 1 call", "Matched with a verified listener. End the call any time.", "off")
-    )
-    ui.card("<b>Why it is not live yet</b><div class=\"hc-muted\">Calls between people need real age verification, a "
-            "calling service, moderation, and a way to report and block. Until all of these exist, this feature stays "
-            "off. Nothing here verifies you or connects you to anyone.</div>")
-    if st.session_state.get("waitlisted"):
-        st.success("Thank you. We saved your interest.")
-    else:
-        st.button("Notify me when it is ready", key="notify_me", on_click=_notify, type="primary")
-    st.caption("This is not a replacement for a counsellor or a doctor.")
+# =================================================================== HEALTH TIPS AND NEWS
+def tips() -> None:
+    ui.back_button("home")
+    st.markdown("# Health tips")
+    st.markdown("### Daily health news")
+    items = S.health_news()
+    if not items:
+        st.caption("News is not available right now. Here are care ideas instead.")
+    for it in items:
+        ui.card(f'<a href="{ui.esc(it["link"])}" target="_blank" rel="noopener noreferrer" '
+                f'style="color:#1B2A4A;font-weight:800;font-size:15px;line-height:1.35;text-decoration:none">{ui.esc(it["title"])}</a>'
+                f'<div class="hc-muted" style="margin-top:4px;font-size:12px">{ui.esc(it["source"])}'
+                f'{" &#183; " + ui.esc(it["ago"]) if it["ago"] else ""}</div>')
+    if items:
+        st.caption("Headlines come from public news feeds and open the publisher's site. Aira does not write or check them. "
+                   "They are general news, not advice for you.")
+    st.markdown("### Care ideas")
+    for tip in S.content.DAILY_TIPS[:8]:
+        ui.card(f'<div style="font-size:14px;line-height:1.45">{ui.esc(tip["en"])}</div>')

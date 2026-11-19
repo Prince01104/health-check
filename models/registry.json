@@ -11,5 +11,17 @@
     "classes": "skin_classes.json",
     "threshold": 0.70,
     "interpolation": "nearest"
+  },
+  "infection": {
+    "model": "infection_model.keras",
+    "classes": "infection_classes.json",
+    "threshold": 0.70,
+    "interpolation": "nearest"
+  },
+  "nail": {
+    "model": "nail_model.keras",
+    "classes": "nail_classes.json",
+    "threshold": 0.70,
+    "interpolation": "nearest"
   }
 }
