@@ -1,19 +1,5 @@
-# data and secrets
+secrets.toml
 data/
-*.db
-.env
-kaggle.json
-__pycache__/
-.venv/
-venv/
-# model files: add your own small ones deliberately (GitHub limit 100 MB)
-# models/*.keras
-# models/*.h5
-
 __pycache__/
 .pytest_cache/
-
-# secrets (never commit)
-.env
-*.env
-.streamlit/secrets.toml
+*.pyc

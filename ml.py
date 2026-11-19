@@ -15,7 +15,7 @@ import cv2
 import numpy as np
 from PIL import Image
 
-BASE = Path(__file__).resolve().parent.parent
+BASE = Path(__file__).resolve().parent
 MODELS_DIR = Path(os.environ.get("HC_MODELS_DIR", BASE / "models"))
 REGISTRY = json.loads((MODELS_DIR / "registry.json").read_text(encoding="utf-8")) \
     if (MODELS_DIR / "registry.json").exists() \
@@ -29,7 +29,9 @@ _lock = threading.Lock()
 
 
 def _paths(check):
-    cfg = REGISTRY[check]
+    cfg = REGISTRY.get(check)
+    if not cfg:                                   # check not in registry.json: shown as "coming soon"
+        return MODELS_DIR / "_missing.keras", MODELS_DIR / "_missing.json"
     return MODELS_DIR / cfg["model"], MODELS_DIR / cfg["classes"]
 
 
@@ -81,7 +83,9 @@ def _load(check: str):
         model = tf.keras.models.load_model(mpath, compile=False)
         classes = json.loads(cpath.read_text(encoding="utf-8"))
         h, w = model.input_shape[1:3]
-        _cache[check] = {"model": model, "classes": classes, "size": (int(w), int(h))}
+        # 128-number "fingerprint" of a photo: the layer just before the final classifier. Used to compare two photos.
+        emb_model = tf.keras.Model(model.inputs, model.layers[-2].output)
+        _cache[check] = {"model": model, "classes": classes, "size": (int(w), int(h)), "emb_model": emb_model}
         return _cache[check]
 
 
@@ -195,6 +199,8 @@ def predict(check: str, img: Image.Image):
             probs = out.astype(np.float32)
         idx = int(np.argmax(probs))
         cam = _gradcam(model, x, idx, n_out)
+        emb = entry["emb_model"].predict(x, verbose=0)[0].astype(np.float64)
+        emb = (emb / (np.linalg.norm(emb) + 1e-9)).round(4).tolist()
 
     label = classes[idx]
     conf = float(probs[idx])
@@ -213,4 +219,5 @@ def predict(check: str, img: Image.Image):
         "threshold": thr,
         "probs": [{"label": l, "p": round(p, 4)} for l, p in ranked],
         "cam": cam,
+        "emb": emb,
     }

@@ -105,8 +105,9 @@ def result_block(check, label, confidence, status, probs, flags) -> str:
     )
 
 
-def build_system(check, label, confidence, status, probs, flags, doctor="doctor") -> str:
-    return SYSTEM_PROMPT.replace("{doctor}", doctor) + "\n\n" + result_block(check, label, confidence, status, probs, flags)
+def build_system(check, label, confidence, status, probs, flags, doctor="doctor", persona="") -> str:
+    head = (persona.strip() + "\n\n") if persona else ""
+    return head + SYSTEM_PROMPT.replace("{doctor}", doctor) + "\n\n" + result_block(check, label, confidence, status, probs, flags)
 
 
 def _plain(text: str) -> str:
@@ -182,7 +183,7 @@ def _fail(kind: str, flags=None) -> dict:
     return {"ok": False, "reply": None, "error": kind, "flags": flags or {}}
 
 
-def ask(check, label, confidence, status, probs, history, message, doctor="doctor", api_key=None) -> dict:
+def ask(check, label, confidence, status, probs, history, message, doctor="doctor", api_key=None, persona="") -> dict:
     """Answer one user message about a classifier result.
 
     Returns {"ok": bool, "reply": str | None, "error": None | "empty" | "not_configured" | "busy" | "timeout" |
@@ -202,7 +203,7 @@ def ask(check, label, confidence, status, probs, history, message, doctor="docto
         "urgent_label": is_urgent_label(label),
         "red_flag": any(RED_FLAGS.search(x) for x in user_texts),
     }
-    system = build_system(check, label, confidence, status, probs, flags, doctor)
+    system = build_system(check, label, confidence, status, probs, flags, doctor, persona)
     turns = history + [{"role": "user", "text": message}]
     try:
         text = _generate(key, system, turns)
