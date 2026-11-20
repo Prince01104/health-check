@@ -10,7 +10,11 @@ import functools
 import os
 import re
 
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")   # current Gemini Flash (GA). Override with GEMINI_MODEL.
+# Gemini Flash models, newest first. The first one that answers is used, so a retired model name never breaks the chat.
+# Set GEMINI_MODEL in the app secrets to try your own choice first.
+MODELS = [m for m in (os.environ.get("GEMINI_MODEL"), "gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite",
+                      "gemini-3.1-flash-lite", "gemini-2.5-flash") if m]
+MODEL = MODELS[0]
 TIMEOUT_MS = 20_000          # a slow Gemini call becomes a friendly message after 20 seconds
 MAX_MESSAGE = 500            # characters per user message
 MAX_HISTORY = 16             # last messages kept in the conversation sent to Gemini
@@ -152,20 +156,32 @@ def _generate(api_key: str, system: str, turns: list[dict]) -> str:
     client = _client(api_key)
     contents = [types.Content(role=m["role"], parts=[types.Part.from_text(text=m["text"])]) for m in turns]
 
-    def call(thinking: bool):
+    def call(model: str, thinking: bool):
         cfg = dict(system_instruction=system, temperature=0.3, max_output_tokens=1024)
         if thinking:
             cfg["thinking_config"] = types.ThinkingConfig(thinking_level="low")   # fast answers for short chat
-        return client.models.generate_content(model=MODEL, contents=contents,
+        return client.models.generate_content(model=model, contents=contents,
                                               config=types.GenerateContentConfig(**cfg))
 
-    try:
-        resp = call(True)
-    except errors.ClientError as e:
-        if getattr(e, "code", None) == 400:      # model did not accept the thinking setting: retry without it
-            resp = call(False)
-        else:
+    last = None
+    for model in MODELS:
+        try:
+            try:
+                resp = call(model, True)
+            except errors.ClientError as e:
+                if getattr(e, "code", None) == 400:      # model did not accept the thinking setting: retry without it
+                    resp = call(model, False)
+                else:
+                    raise
+            break
+        except errors.ClientError as e:
+            last = e
+            if getattr(e, "code", None) in (403, 404, 429):   # model gone, not allowed or out of quota: try the next one
+                print(f"[chat] {model} failed ({e.code}), trying the next model")
+                continue
             raise
+    else:
+        raise last
     return (resp.text or "").strip()
 
 
@@ -208,7 +224,7 @@ def ask(check, label, confidence, status, probs, history, message, doctor="docto
     try:
         text = _generate(key, system, turns)
     except Exception as e:                                   # network, quota, bad key, timeout, blocked...
-        print(f"[chat] Gemini call failed: {type(e).__name__} {getattr(e, 'code', '')}")
+        print(f"[chat] Gemini call failed: {type(e).__name__} {getattr(e, 'code', '')} {str(getattr(e, 'message', '') or e)[:160]}")
         return _fail(_error_kind(e), flags)
     if not text:
         return _fail("unavailable", flags)
