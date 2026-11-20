@@ -37,60 +37,113 @@ def login() -> None:
 
 
 # ------------------------------------------------------------------ home
-BENTO = {
-    # key: (container class, colour, icon svg path content, title, subtitle, page, check key)
-    "aira": ("#E4E1F8", "#5B4BC4", '<path d="M21 12a8 8 0 01-8 8H6l-3 3V12a8 8 0 018-8h2a8 8 0 018 8z"/>', "Talk with Aira", "Ask about your result", "aira", None),
-    "skin": ("#FADDCF", "#B4531A", '<circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2.5 4 2.5S16 14 16 14M9 9.5h.01M15 9.5h.01"/>', "Skin check", "Acne, tinea, eczema", "check", "skin"),
-    "oral": ("#DCE8B2", "#3D5A12", '<path d="M12 6C10 3 5 4 5 9c0 4 1.5 6 2.5 9 .5 2 2.5 2 3 0 .4-1.5 1.6-1.5 2 0 .5 2 2.5 2 3 0 1-3 2.5-5 2.5-9 0-5-5-6-5.5-3z"/>', "Oral check", "Gums, ulcers, teeth", "check", "oral"),
-    "acne": ("#FAE5B5", "#8A5A00", '<path d="M3 7l6 6 4-4 8 8"/>', "Acne tracker", "Weekly progress", "acne", None),
-    "sleep": ("#D5E4F5", "#1F4E8C", '<path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/>', "Sleep mode", "Sounds and timer", "sleep", None),
-    "insomnia": ("#DCEDE5", "#0B6B45", '<rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 9h6M9 13h6M9 17h3"/>', "Insomnia check", "5 quick questions", "insomnia", None),
-    "tips": ("#F8DCE8", "#9B2C5E", '<path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0012 3z"/>', "Health tips", "News and care ideas", "tips", None),
+def _svg(path: str, color: str, size: int = 24) -> str:
+    return (f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2.1" '
+            f'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{path}</svg>')
+
+
+ICON = {
+    "skin": ('<circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2.5 4 2.5S16 14 16 14M9 9.5h.01M15 9.5h.01"/>', "#B4531A"),
+    "oral": ('<path d="M12 6C10 3 5 4 5 9c0 4 1.5 6 2.5 9 .5 2 2.5 2 3 0 .4-1.5 1.6-1.5 2 0 .5 2 2.5 2 3 0 1-3 2.5-5 2.5-9 0-5-5-6-5.5-3z"/>', "#1F5A3A"),
+    "acne": ('<path d="M3 7l6 6 4-4 8 8"/><path d="M15 17h6v-6"/>', "#6B4A00"),
+    "sleep": ('<path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/>', "#4B3FB0"),
+    "insomnia": ('<rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 9h6M9 13h6M9 17h3"/>', "#1F4E8C"),
+    "aira": ('<rect x="5" y="8" width="14" height="11" rx="4"/><path d="M12 8V5M9.5 13h.01M14.5 13h.01M10 16h4"/><circle cx="12" cy="4" r="1"/>', "#9B2C5E"),
+    "nail": ('<path d="M8 20v-9a4 4 0 018 0v9"/><path d="M8 20h8"/>', "#4A5A7A"),
+    "infection": ('<circle cx="12" cy="12" r="4"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>', "#4A5A7A"),
+    "bulb": ('<path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0012 3z"/>', "#4B3FB0"),
+    "news": ('<path d="M4 5h13a2 2 0 012 2v12H6a2 2 0 01-2-2z"/><path d="M8 9h7M8 13h7M8 16h4"/>', "#4B3FB0"),
 }
+ARROW_UP = '<path d="M7 17L17 7M9 7h8v8"/>'
+CHEVRON = '<path d="M9 6l6 6-6 6"/>'
 
 
-def _tile(key: str, height: int) -> None:
-    bg, fg, icon, title, sub, page, check_key = BENTO[key]
-    with st.container(key=f"bt_{key}"):
-        ui.html(
-            f'<div class="bt-in" style="height:{height}px">'
-            f'<div class="bt-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{fg}" stroke-width="2.2" '
-            f'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{icon}</svg></div>'
-            + ('<div class="bt-art" aria-hidden="true"><span style="background:#F2A88C"></span><span style="background:#9A8FE0"></span></div>' if key == "aira" else "")
-            + f'<div><div class="bt-t">{title}</div><div class="bt-s">{sub}</div></div></div>'
-        )
+def _go_card(key: str, inner: str, page: str, label: str, check_key: str | None = None) -> None:
+    """A tappable card: the HTML is the look, an invisible full-size button on top does the tap."""
+    with st.container(key=f"hm_{key}"):
+        ui.html(inner)
         kwargs = {"check_key": check_key} if check_key else {}
-        st.button(f"Open {title}", key=f"tile_{key}", on_click=ui.go, args=(page,), kwargs=kwargs)
+        st.button(f"Open {label}", key=f"tile_{key}", on_click=ui.go, args=(page,), kwargs=kwargs)
+
+
+def _icon(name: str) -> str:
+    path, color = ICON[name]
+    return f'<div class="hm-ic">{_svg(path, color)}</div>'
+
+
+def _big_tile(key: str, title: str, sub: str) -> None:
+    inner = (f'<div class="hm-in" style="height:168px;justify-content:space-between">'
+             f'<div style="display:flex;justify-content:space-between;align-items:flex-start">{_icon(key)}'
+             f'<div class="hm-circ">{_svg(ARROW_UP, "#1B2A4A", 16)}</div></div>'
+             f'<div><div class="hm-t">{title}</div><div class="hm-s">{sub}</div></div></div>')
+    _go_card(key, inner, "check", title, key)
+
+
+def _row(key: str, bg: str, title: str, sub: str, page: str) -> None:
+    inner = (f'<div class="hm-in" style="flex-direction:row;align-items:center;gap:14px;padding:12px 16px">'
+             f'<div class="hm-ic" style="background:{bg}">{_svg(*ICON[key])}</div>'
+             f'<div style="flex:1;min-width:0"><div class="hm-t" style="font-size:17px">{title}</div><div class="hm-s">{sub}</div></div>'
+             f'{_svg(CHEVRON, "#1B2A4A", 20)}</div>')
+    _go_card(key, inner, page, title)
+
+
+def _soon(key: str, title: str) -> str:
+    return (f'<div class="hm-soon">{_icon(key)}<div><div class="hm-t" style="font-size:16px">{title}</div>'
+            f'<span class="hm-pill">Coming soon</span></div></div>')
 
 
 def home() -> None:
     name = st.session_state.get("name", "")
     ui.html(f"""
-    <div style="display:flex;align-items:center;justify-content:space-between;margin:4px 0 14px 0">
-      <div><div class="hc-greet-a">{S.greeting()}</div><div class="hc-greet-b">{ui.esc(name) if name else "there"}</div></div>
-      <div style="flex:none;width:64px;height:64px;border-radius:50%;background:#0B6665;display:flex;align-items:flex-end;justify-content:center;overflow:hidden">{ui.aira(60, suffix="hm")}</div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin:2px 0 10px 0">
+      <div><div class="hc-greet-a">{S.greeting()}</div><div class="hc-greet-b">{ui.esc(name) if name else "there"}</div>
+      <div class="hm-s" style="margin-top:2px">How are you feeling today?</div></div>
+      <div style="position:relative;flex:none;width:64px;height:64px">
+        <div style="width:64px;height:64px;border-radius:50%;background:#0B6665;border:3px solid #fff;box-sizing:border-box;display:flex;align-items:flex-end;justify-content:center;overflow:hidden">{ui.aira(58, suffix="hm")}</div>
+        <span style="position:absolute;right:2px;bottom:4px;width:14px;height:14px;border-radius:50%;background:#2DB35D;border:2px solid #fff"></span></div>
     </div>
     """)
+
+    # ---- Health news (top story if a feed works, otherwise the tip of the day)
+    with st.container(key="newshead"):
+        ui.html('<div class="hm-h" style="margin:8px 0">Health news</div>')
+        st.button("See all", key="seeall", on_click=ui.go, args=("tips",))
+    items = S.health_news()
+    if items:
+        tag, title = "TOP STORY", items[0]["title"]
+        sub = ui.esc(items[0]["source"]) + (f" &#183; {ui.esc(items[0]['ago'])}" if items[0]["ago"] else "")
+        icon = "news"
+    else:
+        tag, title, sub, icon = "TIP OF THE DAY", S.daily_tip(), "Tap for more health tips", "bulb"
+        sub = ui.esc(sub)
+    shown = title if len(title) <= 95 else title[:92].rsplit(" ", 1)[0] + "..."
+    inner = (f'<div class="hm-in" style="flex-direction:row;gap:12px;align-items:flex-start">'
+             f'<div style="flex:1;min-width:0"><span class="hm-tag">{tag}</span>'
+             f'<div class="hm-t" style="font-size:21px;margin-top:10px">{ui.esc(shown)}</div>'
+             f'<div class="hm-s" style="margin-top:6px">{sub}</div></div>{_icon(icon)}</div>')
+    _go_card("news", inner, "tips", "health news")
+
+    # ---- Quick checks
+    ui.html('<div class="hm-h">Quick checks</div>')
     left, right = st.columns(2)
     with left:
-        _tile("aira", 290)
+        _big_tile("skin", "Skin check", "Acne, tinea, eczema")
     with right:
-        _tile("skin", 122)
-        _tile("oral", 122)
-
-    st.markdown("### Care")
+        _big_tile("oral", "Oral check", "Gums, ulcers, teeth")
+    inner = (f'<div class="hm-in" style="flex-direction:row;align-items:center;gap:14px;padding:16px">{_icon("acne")}'
+             f'<div style="flex:1;min-width:0"><div class="hm-t" style="font-size:21px">Acne tracker</div>'
+             f'<div class="hm-s">Add photos, see how acne changes</div></div>'
+             f'<div class="hm-circ">{_svg(CHEVRON, "#1B2A4A", 18)}</div></div>')
+    _go_card("acne", inner, "acne", "Acne tracker")
     a, b = st.columns(2)
-    with a:
-        _tile("acne", 84)
-    with b:
-        _tile("sleep", 84)
+    a.markdown(_soon("nail", "Nail check"), unsafe_allow_html=True)
+    b.markdown(_soon("infection", "Infection check"), unsafe_allow_html=True)
 
-    st.markdown("### Support")
-    a, b = st.columns(2)
-    with a:
-        _tile("insomnia", 84)
-    with b:
-        _tile("tips", 84)
+    # ---- Care and wellbeing
+    ui.html('<div class="hm-h">Care and wellbeing</div>')
+    _row("sleep", "#E4E1F8", "Sleep sounds", "4 calming sounds with a timer", "sleep")
+    _row("insomnia", "#DCE8F8", "Insomnia check", "5 quick questions and ideas", "insomnia")
+    _row("aira", "#F8DCE8", "Talk with Aira", "Ask any health question", "aira")
     st.markdown('<p class="hc-foot">AI screening only. See a doctor for a real diagnosis.</p>', unsafe_allow_html=True)
 
 

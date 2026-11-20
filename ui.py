@@ -26,7 +26,7 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 800 !important; }
 h1 { font-size: 1.7rem !important; padding: 0.2rem 0 0.4rem 0 !important; }
 [data-testid="stForm"] { border: none !important; padding: 0 !important; background: transparent !important; }
 .stButton, [data-testid="stFormSubmitButton"], [data-testid="stFormSubmitButton"] > div, [data-testid="stFormSubmitButton"] button { width: 100% !important; }
-[data-testid="stElementContainer"]:has(> .stButton), [data-testid="stElementContainer"]:has(> [data-testid="stFormSubmitButton"]) { width: 100% !important; }
+[data-testid="stElementContainer"]:has(> .stButton), [data-testid="stElementContainer"]:has([data-testid="stFormSubmitButton"]) { width: 100% !important; }
 .stButton > button, [data-testid="stFormSubmitButton"] > button {
   width: 100%; border-radius: 999px !important; min-height: 50px;
   font-weight: 700 !important; font-size: 15px !important;
@@ -106,7 +106,31 @@ button[data-testid="stBaseButton-primaryFormSubmit"] * { color: #FFFFFF !importa
 .st-key-bottomnav button[kind="primary"], .st-key-bottomnav button[data-testid="stBaseButton-primary"] { color: #0B6665 !important; }
 .st-key-bottomnav button[kind="primary"] *, .st-key-bottomnav button[data-testid="stBaseButton-primary"] * { color: #0B6665 !important; }
 
-/* bento home */
+/* home (quick checks) */
+[class*="st-key-hm_"] { position: relative; box-sizing: border-box; overflow: hidden; border-radius: 28px; margin: 0 0 10px 0; }
+[class*="st-key-hm_"] [data-testid="stVerticalBlock"] { gap: 0 !important; }
+[class*="st-key-hm_"] [data-testid="stMarkdownContainer"], [class*="st-key-hm_"] [data-testid="stMarkdown"] { margin-bottom: 0 !important; }
+.hm-in { display: flex; flex-direction: column; padding: 16px; box-sizing: border-box; }
+.hm-ic { width: 46px; height: 46px; border-radius: 14px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; flex: none; }
+.hm-circ { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.8); display: flex; align-items: center; justify-content: center; flex: none; }
+.hm-t { font-size: 20px; font-weight: 800; letter-spacing: -0.01em; color: #1B2A4A; line-height: 1.2; }
+.hm-s { font-size: 14px; color: #4A5470; line-height: 1.35; margin-top: 3px; }
+.hm-h { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: #1B2A4A; margin: 18px 0 10px 0; }
+.hm-tag { display: inline-block; background: rgba(255,255,255,.75); border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 800; letter-spacing: .03em; color: #1B2A4A; }
+.hm-pill { display: inline-block; background: #FFFFFF; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 800; color: #1B2A4A; margin-top: 4px; }
+.hm-soon { display: flex; align-items: center; gap: 10px; border: 1.5px dashed #B9C0D6; border-radius: 20px; padding: 12px; background: #ECEFF8; margin: 0 0 12px 0; box-sizing: border-box; }
+.hm-soon .hm-ic { width: 40px; height: 40px; }
+.st-key-hm_news { background: #E4E1F8; } .st-key-hm_skin { background: #FADDCF; } .st-key-hm_oral { background: #D9EFE0; }
+.st-key-hm_acne { background: #FAE5B5; }
+.st-key-hm_sleep, .st-key-hm_insomnia, .st-key-hm_aira { background: #FFFFFF; border: 1px solid #E3E6F0; border-radius: 22px; }
+.st-key-newshead { position: relative; }
+.st-key-newshead [data-testid="stVerticalBlock"] { gap: 0 !important; }
+.st-key-seeall { position: absolute !important; right: 0 !important; left: auto !important; top: 0; bottom: 0; width: auto !important; z-index: 2;
+  display: flex !important; align-items: center; justify-content: flex-end; }
+.st-key-seeall > div, .st-key-seeall [data-testid="stElementContainer"], .st-key-seeall .stButton { width: auto !important; }
+.st-key-seeall button { background: transparent !important; border: none !important; box-shadow: none !important; min-height: 0 !important; padding: 4px 0 !important; width: auto !important; }
+.st-key-seeall button p { color: #1B2A4A !important; font-weight: 800 !important; font-size: 15px !important; }
+/* bento home (old) */
 .hc-greet-a { font-size: 32px; font-weight: 400; color: #5B6478; line-height: 1.1; letter-spacing: -0.02em; }
 .hc-greet-b { font-size: 38px; font-weight: 800; color: #1B2A4A; line-height: 1.15; letter-spacing: -0.02em; }
 .hc-foot { text-align: center; font-size: 13px; color: #5B6478; margin: 14px 0 70px 0; }

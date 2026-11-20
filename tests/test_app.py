@@ -88,8 +88,12 @@ def test_every_page_renders(page):
 
 def test_home_marks_untrained_checks_coming_soon():
     at = app("home")
-    for key in ("aira", "skin", "oral", "acne", "sleep", "insomnia", "tips"):
+    for key in ("aira", "skin", "oral", "acne", "sleep", "insomnia", "news"):
         assert not at.button(key=f"tile_{key}").disabled, key
+    assert not at.button(key="seeall").disabled
+    t = texts(at)
+    assert "Nail check" in t and "Infection check" in t and t.count("Coming soon") >= 2     # untrained: shown, not clickable
+    assert not [b for b in at.button if "Nail" in b.label or "Infection" in b.label]
     assert not [b for b in at.button if "Feeling lonely" in b.label]        # the lonely feature is gone
 
 

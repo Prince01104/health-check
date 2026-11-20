@@ -168,18 +168,18 @@ def _generate(api_key: str, system: str, turns: list[dict]) -> str:
         try:
             try:
                 resp = call(model, True)
-            except errors.ClientError as e:
-                if getattr(e, "code", None) == 400:      # model did not accept the thinking setting: retry without it
-                    resp = call(model, False)
-                else:
+            except Exception as e:                       # thinking setting not accepted (old library or model): retry without it
+                if isinstance(e, errors.ClientError) and getattr(e, "code", None) in (403, 404, 429):
                     raise
-            break
-        except errors.ClientError as e:
+                resp = call(model, False)
+            if (resp.text or "").strip():
+                break
+            last = RuntimeError(f"{model} returned an empty answer")
+        except Exception as e:
             last = e
-            if getattr(e, "code", None) in (403, 404, 429):   # model gone, not allowed or out of quota: try the next one
-                print(f"[chat] {model} failed ({e.code}), trying the next model")
-                continue
-            raise
+            print(f"[chat] {model} failed: {type(e).__name__} {getattr(e, 'code', '')} {str(getattr(e, 'message', '') or e)[:120]}")
+            if isinstance(e, errors.ClientError) and getattr(e, "code", None) in (400, 401):
+                raise                                   # bad key or bad request: other models will not help
     else:
         raise last
     return (resp.text or "").strip()
@@ -225,7 +225,9 @@ def ask(check, label, confidence, status, probs, history, message, doctor="docto
         text = _generate(key, system, turns)
     except Exception as e:                                   # network, quota, bad key, timeout, blocked...
         print(f"[chat] Gemini call failed: {type(e).__name__} {getattr(e, 'code', '')} {str(getattr(e, 'message', '') or e)[:160]}")
-        return _fail(_error_kind(e), flags)
+        out = _fail(_error_kind(e), flags)
+        out["detail"] = f"{type(e).__name__} {getattr(e, 'code', '') or ''} {str(getattr(e, 'message', '') or e)}"[:140].replace(key, "***")
+        return out
     if not text:
         return _fail("unavailable", flags)
     return {"ok": True, "reply": _enforce(text, flags, doctor), "error": None, "flags": flags}

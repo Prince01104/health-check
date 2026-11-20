@@ -308,7 +308,10 @@ def _ask(key: str, question: str) -> None:
     if out["ok"]:
         res["chat"].append(("aira", out["reply"]))
     else:
-        res["chat"].append(("err", S.CHAT_ERRORS.get(out["error"], S.CHAT_ERRORS["unavailable"])))
+        msg = S.CHAT_ERRORS.get(out["error"], S.CHAT_ERRORS["unavailable"])
+        if out.get("detail"):
+            msg += f" (Technical detail: {out['detail']})"
+        res["chat"].append(("err", msg))
 
 
 def _chat(key: str, res: dict) -> None:
