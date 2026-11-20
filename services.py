@@ -127,11 +127,29 @@ def risk_answers() -> dict:
     return st.session_state.get("risk", dict(triage.DEFAULT_RISK))
 
 
+def quick_answers(check: str) -> dict:
+    """The chips ticked on the check page for this check (this visit only)."""
+    return st.session_state.get("quick", {}).get(check, {})
+
+
 def risk_for(check: str) -> dict:
-    return triage.risk_level(risk_answers(), check)
+    return triage.risk_level(triage.merge_quick(risk_answers(), quick_answers(check)), check)
 
 
-def record(res: dict) -> None:
+def see_doctor_if(check: str) -> list:
+    return content.SEE_DOCTOR_IF.get(check, content.SEE_DOCTOR_IF["skin"])
+
+
+def quality_of(file) -> dict:
+    """Photo quality before the check (same steps as analyse), so the page can say 'sharp and well lit' early."""
+    img = Image.open(file)
+    img.load()
+    img = ImageOps.exif_transpose(img).convert("RGB")
+    img.thumbnail((1600, 1600))
+    return ml.quality_check(img)
+
+
+def record(res: dict, keep: bool = True) -> None:
     """Compare with the last check of the same type, decide the next step, and add the result to this visit's history.
     Only numbers and text are kept. The photo itself is not stored; a tiny thumbnail stays in memory for this visit."""
     hist = st.session_state.history
@@ -141,6 +159,8 @@ def record(res: dict) -> None:
     res["prev_thumb"] = prev.get("thumb") if prev else None
     res["risk"] = risk_for(res["check"])
     res["next"] = triage.escalate(res, res["risk"], res["change"], CHECKS[res["check"]]["doctor"], is_red_flag(res["label"]))
+    if not keep:                       # the person did not tick "keep in my history"
+        return
     entry = {k: res[k] for k in ("ts", "time", "check", "label", "confidence", "status", "probs", "emb", "brightness")}
     entry["alert_lines"] = res["change"]["lines"]
     entry["next_step"] = res["next"]["title"]

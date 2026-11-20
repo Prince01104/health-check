@@ -8,27 +8,31 @@ import views_care as vc
 
 # ------------------------------------------------------------------ login
 def login() -> None:
+    chips = "".join(f'<span style="background:{bg};color:{fg}">{t}</span>' for t, bg, fg in (
+        ("Skin", "#FADDCF", "#8A3A1E"), ("Oral", "#DCE8B2", "#4A5A12"), ("Sleep", "#D5E4F5", "#1F4E86"), ("Acne", "#FAE5B5", "#7A5200")))
     ui.html(f"""
-    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin:2.2rem 0 1.2rem 0;text-align:center">
-      <div class="aira-float">{ui.logo(112)}</div>
-      <h1 style="margin:0;color:#FFFFFF;font-size:2.1rem !important">Health Check</h1>
-      <p style="margin:0 0 6px 0;font-size:16px;line-height:1.5;color:#E3F8EA">AI-Powered Health Screening</p>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;margin:1.2rem 0 0 0;text-align:center">
+      <div class="aira-float">{ui.aira(150, suffix="l")}</div>
+      <h1 style="margin:6px 0 0 0;font-size:2.3rem !important;color:#1B2A4A">Hi, I am Aira</h1>
+      <p style="margin:0 0 4px 0;font-size:17px;line-height:1.5;color:#5B6478">Your AI health companion.<br>Skin, teeth, sleep and more.</p>
     </div>
+    <div class="lg-chips">{chips}</div>
     """)
-    # There are no accounts in this demo, so there is no password to type. Never ask for a real password
-    # on a page that does not check it.
+    # Demo only: nothing is checked or stored. The password box is there for the look of a real login and is thrown away.
     with st.form("login_form"):
-        name = st.text_input("Your name (optional)", placeholder="Your name (optional)", max_chars=30, label_visibility="collapsed")
+        email = st.text_input("Email", placeholder="you@example.com", max_chars=60)
+        st.text_input("Password", placeholder="Enter your password", type="password", max_chars=60)
         agree = st.checkbox("I understand Aira is a screening aid, not a doctor. It cannot diagnose.")
-        submitted = st.form_submit_button("Continue as guest", type="primary")
+        submitted = st.form_submit_button("Login", type="primary")
     if submitted and not agree:
         st.error("Please tick the box to continue.")
     elif submitted:
+        first = "".join(ch for ch in email.split("@")[0].split(".")[0] if ch.isalpha())[:20].title()
         st.session_state.logged_in = True
-        st.session_state.name = name.strip()
+        st.session_state.name = first
         st.session_state.page = "home"
         st.rerun()
-    st.caption("Demo mode: no account is created. Your photo is checked in memory and is not saved on the server.")
+    st.caption("Demo mode: any email and password works. Nothing is saved, and your photo is checked in memory only.")
     st.caption("AI screening only. It does not replace a doctor's diagnosis.")
 
 
@@ -159,6 +163,7 @@ def _wipe() -> None:
     st.session_state.history = []
     st.session_state.risk = dict(S.triage.DEFAULT_RISK)
     st.session_state.acne_log = []
+    st.session_state.quick = {}
     st.session_state.confirm_delete = False
 
 

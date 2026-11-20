@@ -25,7 +25,8 @@ html, body, .stApp, button, input, textarea, select {
 h1, h2, h3 { letter-spacing: -0.02em; font-weight: 800 !important; }
 h1 { font-size: 1.7rem !important; padding: 0.2rem 0 0.4rem 0 !important; }
 [data-testid="stForm"] { border: none !important; padding: 0 !important; background: transparent !important; }
-.stButton, [data-testid="stFormSubmitButton"] { width: 100%; }
+.stButton, [data-testid="stFormSubmitButton"], [data-testid="stFormSubmitButton"] > div, [data-testid="stFormSubmitButton"] button { width: 100% !important; }
+[data-testid="stElementContainer"]:has(> .stButton), [data-testid="stElementContainer"]:has(> [data-testid="stFormSubmitButton"]) { width: 100% !important; }
 .stButton > button, [data-testid="stFormSubmitButton"] > button {
   width: 100%; border-radius: 999px !important; min-height: 50px;
   font-weight: 700 !important; font-size: 15px !important;
@@ -72,13 +73,13 @@ LIGHT_CSS = """
 .stApp [data-testid="stCaptionContainer"] { color: #5B6478; }
 h3 { font-size: 1.15rem !important; margin-top: .6rem !important; }
 .stButton > button, [data-testid="stFormSubmitButton"] > button {
-  background: #FFFFFF; border: 1.5px solid #CFE8D6; color: #0B7A36;
+  background: #FFFFFF; border: 1.5px solid #D5DAE6; color: #0B6665;
 }
-.stButton > button:hover, [data-testid="stFormSubmitButton"] > button:hover { border-color: #17A34A; color: #0B7A36; }
+.stButton > button:hover, [data-testid="stFormSubmitButton"] > button:hover { border-color: #0B6665; color: #0B6665; }
 .stButton > button[kind="primary"], button[data-testid="stBaseButton-primary"],
 button[data-testid="stBaseButton-primaryFormSubmit"] {
-  background: linear-gradient(135deg, #17A34A, #0B7A36) !important; border: none !important;
-  box-shadow: 0 6px 16px rgba(11,122,54,.28);
+  background: #0B6665 !important; border: none !important;
+  box-shadow: 0 6px 16px rgba(11,102,101,.25);
 }
 .stButton > button[kind="primary"] *, button[data-testid="stBaseButton-primary"] *,
 button[data-testid="stBaseButton-primaryFormSubmit"] * { color: #FFFFFF !important; }
@@ -165,13 +166,101 @@ button[data-testid="stBaseButton-primaryFormSubmit"] * { color: #FFFFFF !importa
 .hc-banner { border-radius: 24px; margin: 0 0 12px 0; overflow: hidden; line-height: 0; }
 [data-testid="stFileUploaderDropzone"] { border: 2px dashed #9FD4AE !important; border-radius: 22px !important; background: #FFFFFF !important;
   padding: 22px 14px !important; }
-[data-testid="stFileUploaderDropzone"] button { background: linear-gradient(135deg,#17A34A,#0B7A36) !important; border: none !important;
+[data-testid="stFileUploaderDropzone"] button { background: #0B6665 !important; border: none !important;
   border-radius: 999px !important; min-height: 44px !important; padding: 0 22px !important; }
 [data-testid="stFileUploaderDropzone"] button * { color: #FFFFFF !important; font-weight: 800 !important; }
 .hc-secure { display: flex; gap: 12px; align-items: center; background: #DDF5E3; border-radius: 18px; padding: 12px 14px;
   font-size: 13px; line-height: 1.4; margin: 0 0 12px 0; }
 [data-testid="stExpander"] { border: 1.5px solid #DCEFE1 !important; border-radius: 18px !important; background: #FFFFFF; }
 [data-testid="stProgress"] > div > div > div > div { background-color: #17A34A !important; }
+
+/* ---- new check / acne design ---- */
+.st-key-hdr { position: relative; min-height: 54px; margin: 0 0 4px 0; }
+.st-key-hdr [data-testid="stVerticalBlock"] { gap: 0 !important; }
+.st-key-hdr .stButton { position: absolute; left: 0; top: 2px; width: auto !important; z-index: 2; }
+.st-key-hdr .stButton > button { width: 44px !important; min-height: 44px !important; height: 44px; padding: 0 !important;
+  border-radius: 14px !important; background: #FFFFFF !important; border: 1px solid #E3E6F0 !important; box-shadow: 0 2px 8px rgba(27,42,74,.06) !important; }
+.st-key-hdr .stButton > button p { display: none; }
+.st-key-hdr .stButton > button [data-testid="stIconMaterial"] { color: #1B2A4A; }
+.hdr-t { padding-left: 58px; }
+.hdr-t .a { font-size: 25px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; color: #1B2A4A; }
+.hdr-t .b { font-size: 13px; color: #5B6478; line-height: 1.3; margin-top: 2px; }
+.hc-h { font-size: 17px; font-weight: 800; margin: 14px 0 8px 0; color: #1B2A4A; }
+.hc-h small { font-size: 13px; font-weight: 500; color: #5B6478; margin-left: 4px; }
+[class*="st-key-src_"], [class*="st-key-src_"] > div, [class*="st-key-src_"] .stButton, [class*="st-key-src_"] [data-testid="stElementContainer"] { width: 100% !important; }
+[class*="st-key-src_"] .stButton > button { height: 96px; min-height: 96px !important; border-radius: 22px !important; border: none !important;
+  box-shadow: none !important; padding: 12px 14px !important; justify-content: flex-start !important; align-items: stretch !important; color: #1B2A4A !important; }
+[class*="st-key-src_"] .stButton > button span[data-has-shortcut], [class*="st-key-src_"] .stButton > button > div {
+  flex-direction: column !important; align-items: flex-start !important; justify-content: space-between !important; gap: 0 !important; height: 100%; width: 100%; }
+[class*="st-key-src_"] .stButton > button [data-testid="stIconMaterial"] { background: #FFFFFF; border-radius: 12px; width: 40px !important; height: 40px !important;
+  min-width: 40px !important; box-sizing: border-box; flex: none; display: flex; align-items: center; justify-content: center; font-size: 22px !important; color: #1B2A4A !important; }
+[class*="st-key-src_"] .stButton > button p { font-size: 16px !important; font-weight: 800 !important; color: #1B2A4A !important; }
+.st-key-src_skin_up button, .st-key-src_acne_up button { background: #FADDCF !important; }
+.st-key-src_skin_cam button, .st-key-src_acne_cam button { background: #D5EBDD !important; }
+.st-key-src_oral_up button { background: #DCE8B2 !important; }
+.st-key-src_oral_cam button { background: #D5E4F5 !important; }
+[class*="st-key-drop_"] [data-testid="stFileUploaderDropzone"] { border: 2px dashed rgba(27,42,74,.25) !important; min-height: 130px; justify-content: center; }
+.st-key-drop_skin [data-testid="stFileUploaderDropzone"], .st-key-drop_acne [data-testid="stFileUploaderDropzone"] { background: #FADDCF !important; }
+.st-key-drop_oral [data-testid="stFileUploaderDropzone"] { background: #DCE8B2 !important; }
+.hc-hint { text-align: center; font-size: 13px; color: #5B6478; margin: -2px 0 10px 0; }
+.hc-drop { border-radius: 22px; min-height: 130px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 14px; text-align: center; font-size: 14px; color: #1B2A4A; margin: 0 0 10px 0; }
+.hc-drop.skin, .hc-drop.acne { background: #FADDCF; } .hc-drop.oral { background: #DCE8B2; }
+[class*="st-key-prev_"] { border-radius: 22px; padding: 10px; margin: 0 0 10px 0; }
+.st-key-prev_skin, .st-key-prev_acne { background: #FADDCF; } .st-key-prev_oral { background: #DCE8B2; }
+.hc-ok { display: flex; align-items: center; gap: 8px; background: #DDF3E6; color: #14603A; border-radius: 12px; padding: 9px 12px;
+  font-size: 13px; font-weight: 700; margin: 0 0 6px 0; }
+.hc-ok.warn { background: #FDF1D6; color: #7A5200; }
+.st-key-quick { background: #FFFFFF; border: 1px solid #E3E6F0; border-radius: 20px; padding: 14px 14px 6px 14px; margin: 0 0 12px 0; }
+.st-key-quick p { margin: 0 0 6px 0; }
+.hc-q { font-size: 14px; font-weight: 700; color: #1B2A4A; margin: 4px 0 6px 0; }
+button[data-variant="pills"] { border-radius: 999px !important; min-height: 34px !important; font-size: 13px !important; font-weight: 600 !important;
+  background: #F4F5FA !important; border: 1px solid #D5DAE6 !important; color: #1B2A4A !important; box-shadow: none !important; }
+button[data-variant="pills"] * { color: #1B2A4A !important; }
+button[data-variant="pills"][data-selected="true"], button[data-variant="pills"][aria-checked="true"] { background: #0B6665 !important; border-color: #0B6665 !important; }
+button[data-variant="pills"][data-selected="true"] *, button[data-variant="pills"][aria-checked="true"] * { color: #FFFFFF !important; }
+[data-testid="stCheckbox"] label p { font-size: 13px; }
+[data-testid="stCheckbox"] [data-baseweb="checkbox"] > div:first-child { border-color: #5B6478 !important; border-radius: 6px !important; }
+[data-testid="stCheckbox"] input:checked + div { background: #0B6665 !important; border-color: #0B6665 !important; }
+.rc { border-radius: 20px; padding: 16px; margin: 0 0 12px 0; border: 1.5px solid transparent; }
+.rc .k { font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.rc .big { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; margin: 4px 0 8px 0; }
+.rc .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.rc .chip { background: #FFFFFF; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 800; }
+.rc .txt { font-size: 14px; line-height: 1.5; color: #1B2A4A; }
+.rc.doctor { background: #FBE3E0; border-color: #F0B9B3; } .rc.doctor .k { color: #B3261E; }
+.rc.watch { background: #FDF1D6; border-color: #F0D9A0; } .rc.watch .k { color: #8A6A10; }
+.rc.routine { background: #DDF3E6; border-color: #B9E2C9; } .rc.routine .k { color: #14603A; }
+.rc.retake { background: #FCE9DA; border-color: #F0C9A8; } .rc.retake .k { color: #B4531A; }
+.wc { background: #FFFFFF; border: 1.5px solid #E3E6F0; border-radius: 20px; padding: 14px 16px; margin: 0 0 12px 0; }
+.wc .k { font-size: 11px; font-weight: 800; letter-spacing: .04em; color: #5B6478; text-transform: uppercase; margin-bottom: 6px; }
+.wc ul { margin: 0; padding-left: 18px; } .wc li { font-size: 14px; line-height: 1.5; margin: 2px 0; }
+.duo { display: flex; gap: 10px; margin: 0 0 12px 0; }
+.duo > div { flex: 1; border-radius: 18px; padding: 12px 14px; min-width: 0; }
+.duo .k { font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 6px; }
+.duo ul { margin: 0; padding-left: 16px; } .duo li { font-size: 13px; line-height: 1.45; margin: 2px 0; }
+.duo .g { background: #DDF3E6; } .duo .g .k { color: #14603A; } .duo .r { background: #FBE3E0; } .duo .r .k { color: #B3261E; }
+.st-key-heatcard { background: #FFFFFF; border: 1.5px solid #E3E6F0; border-radius: 20px; padding: 12px; margin: 0 0 12px 0; }
+.legend { height: 8px; border-radius: 6px; background: linear-gradient(90deg, #3B6FD8, #35B9C9, #7BD16B, #F2D13B, #F2833B, #E0452F); margin: 4px 0 6px 0; }
+.legend-l { display: flex; justify-content: space-between; font-size: 12px; color: #5B6478; }
+.bar-row { margin: 10px 0 2px 0; } .bar-row .t { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.bar { height: 8px; border-radius: 5px; background: #E6EAF2; overflow: hidden; } .bar > i { display: block; height: 100%; background: #0B6665; border-radius: 5px; }
+.stat2 { display: flex; gap: 10px; margin-top: 10px; }
+.stat2 > div { flex: 1; background: rgba(255,255,255,.65); border-radius: 14px; padding: 10px 12px; }
+.stat2 .l { font-size: 12px; color: #5B6478; } .stat2 .v { font-size: 20px; font-weight: 800; }
+.ba { display: flex; gap: 10px; } .ba > div { flex: 1; min-width: 0; text-align: left; }
+.ba .ph { border-radius: 14px; aspect-ratio: 1 / .62; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #1B2A4A; overflow: hidden; }
+.ba .ph img { width: 100%; height: 100%; object-fit: cover; }
+.ba .cap { display: flex; justify-content: space-between; font-size: 13px; margin-top: 6px; } .ba .cap b { font-weight: 800; } .ba .cap span { color: #5B6478; }
+.aira-say { background: #DDF3E6; color: #14603A; border-radius: 12px; padding: 10px 12px; font-size: 14px; margin-top: 10px; }
+.trend { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; height: 150px; padding: 4px 4px 0 4px; }
+.trend > div { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; }
+.trend i { display: block; width: 100%; max-width: 30px; border-radius: 8px; background: #EBC3D2; }
+.trend i.now { background: #B4426F; }
+.trend span { font-size: 11px; color: #5B6478; margin-top: 6px; white-space: nowrap; } .trend span.now { color: #1B2A4A; font-weight: 800; }
+.ci { display: flex; align-items: center; gap: 12px; background: #FFFFFF; border: 1.5px solid #E3E6F0; border-radius: 18px; padding: 10px 12px; margin: 0 0 10px 0; }
+.ci .ic { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex: none; font-size: 18px; }
+.ci .m { flex: 1; min-width: 0; } .ci .m b { display: block; font-size: 15px; } .ci .m span { font-size: 13px; color: #5B6478; }
 """
 
 DARK_CSS = """
@@ -194,33 +283,28 @@ button[data-testid="stBaseButton-primaryFormSubmit"] * { color: #0A1030 !importa
 """
 
 LOGIN_CSS = """
-.stApp { background: linear-gradient(160deg, #3BD16F 0%, #17A34A 45%, #0B7A36 100%) !important; }
-.stApp::before {
-  content: ""; position: fixed; right: -90px; top: -70px; width: 300px; height: 300px; border-radius: 50%;
-  background: rgba(255,255,255,.16); z-index: 0;
-}
-.stApp::after {
-  content: ""; position: fixed; left: -120px; bottom: -110px; width: 340px; height: 340px; border-radius: 50%;
-  background: rgba(255,255,255,.12); z-index: 0;
-}
-.stApp, .stApp p, .stApp label, .stApp h1, .stApp h2, .stApp span,
-.stApp [data-testid="stMarkdownContainer"], .stApp [data-testid="stWidgetLabel"] p { color: #FFFFFF; }
-.stApp [data-testid="stCaptionContainer"] { color: #E3F8EA; }
-[data-baseweb="base-input"], [data-baseweb="input"] { background: rgba(255,255,255,0.20) !important; border-radius: 999px !important; }
-[data-baseweb="input"] { border: 1.5px solid rgba(255,255,255,0.55) !important; }
-[data-baseweb="base-input"] input { color: #FFFFFF !important; -webkit-text-fill-color: #FFFFFF !important; background: transparent !important;
-  padding-left: 18px !important; }
-[data-baseweb="base-input"] input::placeholder { color: #E3F8EA !important; -webkit-text-fill-color: #E3F8EA !important; opacity: 1; }
-[data-testid="stTextInputRootElement"], [data-testid="stTextInputRootElement"] > div { background: rgba(255,255,255,0.22) !important;
-  border-radius: 999px !important; border: 1.5px solid rgba(255,255,255,0.6) !important; }
-[data-testid="stTextInputRootElement"] input { color: #FFFFFF !important; -webkit-text-fill-color: #FFFFFF !important; padding-left: 18px !important; }
-[data-testid="stTextInputRootElement"] input::placeholder { color: #E3F8EA !important; -webkit-text-fill-color: #E3F8EA !important; opacity: 1; }
-[data-testid="stCheckbox"] label span { color: #FFFFFF !important; font-size: 13px; }
-[data-testid="stCheckbox"] [data-baseweb="checkbox"] > div:first-child { background: rgba(255,255,255,.25) !important; border-color: #FFFFFF !important; }
-[data-testid="stFormSubmitButton"] > button { background: #FFFFFF !important; border: none !important; box-shadow: 0 8px 20px rgba(0,0,0,.16); }
-[data-testid="stFormSubmitButton"] > button * { color: #0B7A36 !important; font-weight: 800; }
-[data-testid="stAlert"] { background: rgba(255,255,255,.92) !important; border-radius: 16px; }
-[data-testid="stAlert"] * { color: #8A1C14 !important; }
+.stApp { background-color: #F4F5FA !important;
+  background-image: radial-gradient(circle at 8% 6%, rgba(196,188,246,.55), transparent 36%),
+                    radial-gradient(circle at 100% 36%, rgba(250,205,180,.55), transparent 34%),
+                    radial-gradient(circle at 14% 98%, rgba(190,235,205,.65), transparent 40%) !important; }
+.stApp, .stApp p, .stApp label, .stApp h1, .stApp span, .stApp [data-testid="stMarkdownContainer"],
+.stApp [data-testid="stWidgetLabel"] p { color: #1B2A4A; }
+.stApp [data-testid="stCaptionContainer"], .stApp [data-testid="stCaptionContainer"] p { color: #5B6478; text-align: center; }
+[data-testid="stWidgetLabel"] p { font-size: 16px; font-weight: 700; }
+[data-testid="stTextInputRootElement"], [data-testid="stTextInputRootElement"] > div, [data-baseweb="base-input"], [data-baseweb="input"] {
+  background: #FFFFFF !important; border-radius: 999px !important; }
+[data-testid="stTextInputRootElement"] { border: 1.5px solid #D9DEEA !important; min-height: 50px; box-shadow: none !important; }
+[data-testid="stTextInputRootElement"] input { color: #1B2A4A !important; -webkit-text-fill-color: #1B2A4A !important; padding-left: 20px !important; font-size: 16px; }
+[data-testid="stTextInputRootElement"] input::placeholder { color: #8A93A8 !important; -webkit-text-fill-color: #8A93A8 !important; opacity: 1; }
+[data-testid="stTextInputRootElement"]:focus-within { border-color: #0B6665 !important; }
+[data-testid="stCheckbox"] label p { color: #5B6478 !important; font-size: 13px; font-weight: 500 !important; }
+[data-testid="stFormSubmitButton"], [data-testid="stFormSubmitButton"] > div, [data-testid="stFormSubmitButton"] button { width: 100% !important; }
+[data-testid="stFormSubmitButton"] > button { background: #0B6665 !important; border: none !important; border-radius: 18px !important; min-height: 54px;
+  box-shadow: 0 8px 20px rgba(11,102,101,.25); }
+[data-testid="stFormSubmitButton"] > button * { color: #FFFFFF !important; font-weight: 800; font-size: 17px; }
+[data-testid="stAlert"] { border-radius: 16px; }
+.lg-chips { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 6px 0 22px 0; }
+.lg-chips span { border-radius: 999px; padding: 9px 16px; font-size: 15px; font-weight: 800; }
 """
 
 
@@ -256,6 +340,13 @@ def go(page: str, **state) -> None:
 
 def back_button(target: str = "home", label: str = "Back") -> None:
     st.button(label, icon=":material/arrow_back:", key=f"back_{target}_{label}", on_click=go, args=(target,))
+
+
+def header(title: str, subtitle: str = "", target: str = "home") -> None:
+    """Page header: round back button on the left, title and a small subtitle."""
+    with st.container(key="hdr"):
+        st.button("Back", icon=":material/arrow_back:", key=f"back_{target}_Back", on_click=go, args=(target,))
+        html(f'<div class="hdr-t"><div class="a">{esc(title)}</div><div class="b">{esc(subtitle)}</div></div>')
 
 
 def aira(size: int = 150, sleepy: bool = False, suffix: str = "a") -> str:

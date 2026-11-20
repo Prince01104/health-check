@@ -24,11 +24,66 @@ RISK_FIELDS = {
 }
 DEFAULT_RISK = {k: v[0] for k, v in RISK_FIELDS.items()}
 
+# ------------------------------------------------------------------ quick questions on the check page (chips)
+DURATION_CHIPS = ["Under 1 week", "1 to 3 weeks", "Over 3 weeks", "Over 3 months"]
+SIGN_CHIPS = {
+    "skin": ["Itching", "Pain", "Bleeding or pus", "Fever", "Spreading fast"],
+    "oral": ["Pain", "Swelling", "Bleeding or pus", "Fever", "Loose teeth", "Hard to swallow"],
+}
+BACKGROUND_CHIPS = {
+    "skin": ["Diabetes", "Allergies", "Weak immunity", "Had this before"],
+    "oral": ["Diabetes", "Weak immunity", "Tobacco or pan", "Had this before"],
+}
+RED_SIGNS = ("Fever", "Hard to swallow", "Spreading fast")      # signs that should not wait
+# The chip names are mapped onto the older risk-factor answers. The mapping leans cautious, never alarming.
+_DURATION_MAP = {"Under 1 week": "Less than 2 weeks", "1 to 3 weeks": "Less than 2 weeks",
+                 "Over 3 weeks": "2 to 4 weeks", "Over 3 months": "More than 4 weeks"}
+
+
+def merge_quick(answers: dict, quick: dict | None) -> dict:
+    """Risk answers + the chips the user ticked on the check page -> one answers dict. Chips win over the profile."""
+    out = dict(answers or {})
+    q = quick or {}
+    if q.get("duration") in _DURATION_MAP:
+        out["duration"] = _DURATION_MAP[q["duration"]]
+    bg = list(q.get("background") or [])
+    if "Diabetes" in bg:
+        out["diabetes"] = "Yes"
+    if "Tobacco or pan" in bg and out.get("tobacco", DEFAULT_RISK["tobacco"]) in ("Prefer not to say", "None"):
+        out["tobacco"] = "Chewing (gutka, paan, tobacco)"
+    out["signs"] = list(q.get("signs") or [])
+    out["background"] = bg
+    return out
+
+
+def quick_lines(quick: dict | None, check: str, answers: dict | None = None) -> list[str]:
+    """Plain sentences for 'Why this priority', built only from what the user ticked."""
+    q, a = quick or {}, {**DEFAULT_RISK, **(answers or {})}
+    lines = []
+    if q.get("duration") in ("Over 3 weeks", "Over 3 months"):
+        lines.append("It has lasted more than 3 weeks, which needs a check even if it looks mild.")
+    for sgn in q.get("signs") or []:
+        lines.append({"Pain": "You reported pain.", "Itching": "You reported itching.", "Swelling": "You reported swelling.",
+                      "Bleeding or pus": "You reported bleeding or pus.", "Fever": "You reported a fever.",
+                      "Loose teeth": "You reported loose teeth.", "Hard to swallow": "You reported trouble swallowing.",
+                      "Spreading fast": "You said it is spreading fast."}.get(sgn, f"You reported: {sgn}."))
+    bg = q.get("background") or []
+    if "Tobacco or pan" in bg or (check == "oral" and a["tobacco"] not in ("Prefer not to say", "None")):
+        lines.append("Tobacco use raises the risk of serious mouth problems.")
+    if "Diabetes" in bg:
+        lines.append("Diabetes can slow healing and raise the chance of infection.")
+    if "Weak immunity" in bg:
+        lines.append("A weak immune system makes infections more likely.")
+    if "Had this before" in bg:
+        lines.append("You said this problem came back. Repeats are worth mentioning to the doctor.")
+    return lines
+
 
 def risk_level(answers: dict, check: str | None = None) -> dict:
     """Count simple, well-known risk factors. Returns {"level": low|moderate|high|unknown, "points", "reasons"}."""
     a = {**DEFAULT_RISK, **(answers or {})}
-    if all(a[k] == DEFAULT_RISK[k] for k in a):
+    signs, background = list(a.get("signs") or []), list(a.get("background") or [])
+    if all(a[k] == DEFAULT_RISK[k] for k in DEFAULT_RISK) and not signs and not background:
         return {"level": "unknown", "points": 0, "reasons": []}
     pts, why = 0, []
 
@@ -55,7 +110,16 @@ def risk_level(answers: dict, check: str | None = None) -> dict:
         add(1, "Problem lasting 2 to 4 weeks")
     if a["changing"] == "Yes":
         add(3, "Growing, bleeding or changing")
-    level = "high" if (pts >= 4 or a["changing"] == "Yes") else "moderate" if pts >= 2 else "low"
+    red = [x for x in signs if x in RED_SIGNS]
+    if red:
+        add(3, "You reported: " + ", ".join(x.lower() for x in red))
+    elif any(x in signs for x in ("Pain", "Swelling", "Bleeding or pus", "Loose teeth")):
+        add(1, "You reported pain, swelling or bleeding")
+    if "Weak immunity" in background:
+        add(1, "Weak immunity")
+    if "Had this before" in background:
+        add(1, "This problem came back before")
+    level = "high" if (pts >= 4 or a["changing"] == "Yes" or red) else "moderate" if pts >= 2 else "low"
     return {"level": level, "points": pts, "reasons": why}
 
 

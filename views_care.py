@@ -1,4 +1,6 @@
 """Check, progress, Aira chat, tips and news, acne tracker, sleep and insomnia screens."""
+import base64
+import datetime as dt
 import hashlib
 import io
 import time
@@ -13,13 +15,45 @@ import ui
 
 
 # =================================================================== CHECKS
+SUBTITLE = {"skin": "Acne, tinea, eczema or no clear problem", "oral": "Hypodontia, gingivitis, ulcer or calculus"}
+ADD_ICON = ('<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1B2A4A" stroke-width="1.8" stroke-linecap="round" '
+            'stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>')
+
+
+def _set_src(key: str, mode: str) -> None:
+    st.session_state[f"srcmode_{key}"] = mode
+
+
+def _source_tiles(key: str):
+    """Two pastel tiles (Upload / Take photo) and the matching widget. Returns the chosen photo or None."""
+    mode = st.session_state.get(f"srcmode_{key}", "up")
+    left, right = st.columns(2)
+    for col, m, label, icon in ((left, "up", "Upload photo", ":material/upload:"), (right, "cam", "Take photo", ":material/photo_camera:")):
+        with col, st.container(key=f"src_{key}_{m}"):
+            st.button(label, icon=icon, key=f"btn_{m}_{key}", on_click=_set_src, args=(key, m))
+    st.markdown(f"<style>.st-key-src_{key}_{mode} button {{ box-shadow: 0 0 0 2.5px #0B6665 !important; }}</style>", unsafe_allow_html=True)
+    if mode == "up":
+        with st.container(key=f"drop_{key}"):
+            return st.file_uploader("Upload a photo", type=["jpg", "jpeg", "png", "webp"], key=f"up_{key}", label_visibility="collapsed")
+    return st.camera_input("Take a photo", key=f"cam_{key}", label_visibility="collapsed")
+
+
+def _quick_questions(key: str) -> None:
+    q = st.session_state.setdefault("quick", {}).setdefault(key, {})
+    t = S.triage
+    with st.container(key="quick"):
+        ui.html('<div class="hc-q">How long has it been there?</div>')
+        q["duration"] = st.pills("How long", t.DURATION_CHIPS, selection_mode="single", key=f"q_dur_{key}", label_visibility="collapsed")
+        ui.html('<div class="hc-q">Any of these signs?</div>')
+        q["signs"] = st.pills("Signs", t.SIGN_CHIPS[key], selection_mode="multi", key=f"q_sign_{key}", label_visibility="collapsed") or []
+        ui.html('<div class="hc-q">Health background</div>')
+        q["background"] = st.pills("Background", t.BACKGROUND_CHIPS[key], selection_mode="multi", key=f"q_bg_{key}", label_visibility="collapsed") or []
+
+
 def check() -> None:
     key = st.session_state.get("check_key", "skin")
     cfg = S.CHECKS[key]
-    ui.back_button("home")
-    st.markdown(f"# {cfg['title']}")
-    ui.banner(key)
-    st.caption(cfg["hint"])
+    ui.header(cfg["title"], SUBTITLE.get(key, cfg["blurb"]))
 
     if not S.model_ready(key):
         ui.card(
@@ -33,86 +67,106 @@ def check() -> None:
     if S.is_demo(key):
         st.warning("Demo model: the results are random and not meaningful.")
 
-    with st.expander("Optional: a few questions for better guidance"):
-        risk_form(f"check_{key}")
-
-    source = st.radio("Photo source", ["Upload", "Camera"], horizontal=True, label_visibility="collapsed")
-    if source == "Upload":
-        photo = st.file_uploader("Upload a photo", type=["jpg", "jpeg", "png", "webp"])
-    else:
-        photo = st.camera_input("Take a photo")
-    if photo is None:
-        return
-
-    data = photo.getvalue()
-    photo_id = hashlib.md5(data).hexdigest()
-    try:
-        preview = ImageOps.exif_transpose(Image.open(io.BytesIO(data))).convert("RGB")
-        preview.thumbnail((900, 900))
-    except (OSError, ValueError):
-        st.error("This file is not a valid photo. Please try another one.")
-        return
-    done = st.session_state.results.get(key)
-    if not (done and done["photo"] == photo_id):      # once there is a result, the result comes first (the photo is in its tabs)
-        st.image(preview)
-
-    ui.secure_note("Your photo is checked in memory and never saved.")
-    if st.button("Analyze photo", type="primary", icon=":material/auto_awesome:", key=f"run_{key}"):
+    ui.html('<div class="hc-h">1. Add a clear photo</div>')
+    photo = _source_tiles(key)
+    data = photo.getvalue() if photo is not None else None
+    photo_id = hashlib.md5(data).hexdigest() if data else None
+    preview = None
+    if data:
         try:
-            with st.spinner("Aira is looking at your photo..."):
-                res = S.analyse(key, io.BytesIO(data))
-        except Exception as exc:                       # show a friendly message, keep the real error in the log
-            print("[error] analyse failed:", repr(exc))
-            st.error("Something went wrong with this photo. Please try another one.")
-            return
-        res["photo"] = photo_id
-        S.record(res)
-        st.session_state.results[key] = res
-        st.rerun()
+            preview = ImageOps.exif_transpose(Image.open(io.BytesIO(data))).convert("RGB")
+            preview.thumbnail((900, 900))
+        except (OSError, ValueError):
+            st.error("This file is not a valid photo. Please try another one.")
+            data = photo_id = None
+    if preview is None:
+        ui.html(f'<div class="hc-hint">{ui.esc(cfg["hint"])}</div>')
+    else:
+        with st.container(key=f"prev_{key}"):
+            st.image(preview)
+        try:
+            warns = S.quality_of(io.BytesIO(data))["warnings"]
+        except Exception:                                    # the pill is a bonus; never block the check
+            warns = None
+        if warns is not None:
+            if warns:
+                ui.html(f'<div class="hc-ok warn">{ui.esc(S.QUALITY_TEXT.get(warns[0], warns[0]))}</div>')
+            else:
+                ui.html('<div class="hc-ok"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14603A" stroke-width="2.4" '
+                        'stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>'
+                        'Photo is sharp and well lit</div>')
+
+    ui.html('<div class="hc-h">2. Quick questions <small>optional</small></div>')
+    _quick_questions(key)
+    keep = st.checkbox("Keep this check in my history so I can compare later", key=f"keep_{key}")
+
+    if st.button("Check now", type="primary", icon=":material/auto_awesome:", key=f"run_{key}"):
+        if data is None:
+            st.warning("Please add a photo first.")
+        else:
+            try:
+                with st.spinner("Aira is looking at your photo..."):
+                    res = S.analyse(key, io.BytesIO(data))
+            except Exception as exc:                       # show a friendly message, keep the real error in the log
+                print("[error] analyse failed:", repr(exc))
+                st.error("Something went wrong with this photo. Please try another one.")
+                return
+            res["photo"] = photo_id
+            res["quick"] = {k: (list(v) if isinstance(v, list) else v) for k, v in S.quick_answers(key).items()}
+            S.record(res, keep=keep)
+            st.session_state.results[key] = res
+            st.rerun()
+    st.caption("Your photo is checked in memory and never saved.")
 
     res = st.session_state.results.get(key)
     if res and res["photo"] == photo_id:
         _show_result(key, res)
 
 
-def _show_result(key: str, res: dict) -> None:
-    status, label, prob = res["status"], res["label"], res["confidence"]
-    doctor = S.CHECKS[key]["doctor"]
-    info = S.info_for(key, label)
+def _bullets(items) -> str:
+    return "<ul>" + "".join(f"<li>{ui.esc(x)}</li>" for x in items) + "</ul>"
 
+
+def _show_result(key: str, res: dict) -> None:
+    status = res["status"]
+    doctor = S.CHECKS[key]["doctor"]
+    info = S.info_for(key, res["label"])
+    nxt = res["next"]
+    ui.html('<div class="hc-h">3. Your result</div>')
     for warning in res["quality"]["warnings"]:
         st.warning(S.QUALITY_TEXT.get(warning, warning))
 
-    _result_card(res)
-    _next_step(res)
+    _result_card(key, res)
+
+    quick = res.get("quick") or {}
+    why = list(nxt["reasons"])
+    for line in S.triage.quick_lines(quick, key, S.risk_answers()):
+        if line not in why:
+            why.append(line)
+    if why:
+        ui.html(f'<div class="wc"><div class="k">Why this priority</div>{_bullets(why)}</div>')
+
+    if status == "ok":
+        ui.html(f'<div class="duo"><div class="g"><div class="k">What you can do</div>{_bullets(info["en"]["tips"])}</div>'
+                f'<div class="r"><div class="k">See a doctor if</div>{_bullets(S.see_doctor_if(key))}</div></div>')
+    else:
+        ui.html(f'<div class="duo"><div class="r"><div class="k">See a doctor if</div>{_bullets(S.see_doctor_if(key))}</div></div>')
+
     _change(res)
 
     if res["heat"] is not None:
-        tab_photo, tab_heat = st.tabs(["Photo", "Heatmap"])
-        with tab_photo:
-            st.image(res["base"])
-        with tab_heat:
+        ui.html('<div class="hc-h">Where the model looked</div>')
+        with st.container(key="heatcard"):
             st.image(res["heat"])
-            st.caption("Warm colours show where the AI looked. It is only a hint, not proof.")
+            ui.html('<div class="legend"></div><div class="legend-l"><span>Less</span><span>More</span></div>'
+                    '<p class="hc-muted" style="margin:8px 0 0 0">Bright areas influenced the result most. This explains the AI, '
+                    'it is not a medical finding.</p>')
 
-    if status != "invalid" and S.is_red_flag(label):
-        st.warning(f"This type of result needs a doctor. Please see a {doctor} soon.")
-
-    if status == "ok":
-        st.markdown("**About this result**")
-        st.write(info["en"]["about"])
-        st.markdown("**What you can do**")
-        for tip in info["en"]["tips"]:
-            st.markdown(f"- {tip}")
-        advice = {"soon": f"Please book a visit with a {doctor} soon.",
-                  "no": "Nothing worrying was seen, but regular check-ups are still a good idea."}
-        st.info(advice.get(info["see_doctor"], "If it does not settle in 1 to 2 weeks or gets worse, please see a doctor."))
-    elif status == "uncertain":
-        st.info("If you are worried, please see a doctor.")
-
-    with st.expander("Other possibilities"):
-        for item in res["probs"][:4]:
-            st.progress(min(max(item["p"], 0.0), 1.0), text=f"{S.pretty(item['label'])}  {item['p'] * 100:.0f}%")
+    ui.html('<div class="hc-h">Other possibilities</div>')
+    rows = "".join(
+        f'<div class="bar-row"><div class="t"><span>{ui.esc(S.pretty(p["label"]))}</span><span>{p["p"] * 100:.0f}%</span></div>'
+        f'<div class="bar"><i style="width:{min(max(p["p"], 0.0), 1.0) * 100:.0f}%"></i></div></div>' for p in res["probs"][:4])
+    ui.html(f'<div class="wc">{rows}</div>')
 
     if status != "invalid":
         _chat(key, res)
@@ -122,44 +176,25 @@ def _show_result(key: str, res: dict) -> None:
     _feedback(key, res)
 
 
-def _result_card(res: dict) -> None:
+def _result_card(key: str, res: dict) -> None:
     status, label, prob = res["status"], res["label"], res["confidence"]
+    nxt = res["next"]
+    doctor = S.CHECKS[key]["doctor"]
+    level = nxt["level"]
     if status == "ok":
-        ui.card(
-            '<div class="hc-muted" style="font-weight:700">MOST LIKELY (SCREENING, NOT A DIAGNOSIS)</div>'
-            f'<div style="font-size:24px;font-weight:800">{ui.esc(S.pretty(label))}</div>'
-            f'<div class="hc-muted">{prob * 100:.0f}% confidence</div>'
-        )
+        big, text = S.pretty(label), S.info_for(key, label)["en"]["about"]
     elif status == "uncertain":
         why = ("The photo quality is too low to trust a result." if res.get("demoted")
                else "The model is not confident about this photo.")
-        ui.card(
-            '<div style="font-size:12px;font-weight:800;color:#8A3A10">RESULT</div>'
-            '<div style="font-size:22px;font-weight:800">Not sure</div>'
-            f'<div class="hc-muted" style="margin-top:4px">{why} Please retake it in good light, closer to the '
-            f'problem area, or see a doctor.<br>Best guess: <b>{ui.esc(S.pretty(label))}</b> ({prob * 100:.0f}%)</div>',
-            "border-color:#B4531A",
-        )
+        big, text = "Not sure", f"{why} Best guess: {S.pretty(label)}."
     else:
-        ui.card(
-            '<div style="font-size:22px;font-weight:800">This photo does not look right</div>'
-            '<div class="hc-muted" style="margin-top:4px">Please take a clear photo of the correct area and try again.</div>',
-            "border-color:#B4531A",
-        )
-
-
-def _next_step(res: dict) -> None:
-    nxt = res["next"]
-    reasons = "".join(f"<li>{ui.esc(r)}</li>" for r in nxt["reasons"])
-    ui.card(
-        '<div class="hc-muted" style="font-weight:700">YOUR NEXT STEP</div>'
-        f'<div style="font-size:20px;font-weight:800;color:{nxt["color"]}">{ui.esc(nxt["title"])}</div>'
-        f'<div style="margin-top:4px">{ui.esc(nxt["text"])}</div>'
-        + (f'<ul class="hc-muted" style="margin:8px 0 0 0;padding-left:18px">{reasons}</ul>' if reasons else ""),
-        f"border-color:{nxt['color']};border-width:2px",
-    )
-    if res["risk"]["level"] != "unknown":
-        st.caption(f"Risk factors you gave: {res['risk']['level']} (a simple count, not a medical score).")
+        big, text = "Photo not suitable", "Please take a clear photo of the correct area and try again."
+    pill = f"See a {doctor} soon" if level == "doctor" else nxt["title"]
+    conf = (f'<span style="font-size:13px;color:#1B2A4A">{prob * 100:.0f}% confidence{" &#183; sample" if res.get("demo") else ""}</span>'
+            if status != "invalid" else "")
+    nxt_line = f'<div class="txt" style="margin-top:8px"><b>Next step:</b> {ui.esc(nxt["text"])}</div>' if level != "doctor" else ""
+    ui.html(f'<div class="rc {level}"><div class="k">Screening result &#183; not a diagnosis</div><div class="big">{ui.esc(big)}</div>'
+            f'<div class="row"><span class="chip">{ui.esc(pill)}</span>{conf}</div><div class="txt">{ui.esc(text)}</div>{nxt_line}</div>')
 
 
 def _change(res: dict) -> None:
@@ -333,57 +368,123 @@ def _level(score: int) -> str:
     return "Severe"
 
 
+def _thumb_b64(img) -> str:
+    buf = io.BytesIO()
+    img.convert("RGB").save(buf, "JPEG", quality=80)
+    return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
+
+
+def _acne_entries(log: list) -> list:
+    """Log entries with a date label. Sample points are spread weekly into the past, real ones use their own date."""
+    ns = sum(1 for e in log if e.get("sample"))
+    out, k = [], 0
+    for n, e in enumerate(log):
+        if e.get("sample"):
+            label = (dt.date.today() - dt.timedelta(days=7 * (ns - k))).strftime("%d %b")
+            k += 1
+        else:
+            label = e.get("date") or f"Check-in {n + 1}"
+        out.append({"score": int(e["score"]), "sample": bool(e.get("sample")), "label": label, "thumb": e.get("thumb")})
+    return out
+
+
+def _photo_box(entry, fallback: str, tint: str) -> str:
+    if entry and entry.get("thumb") is not None:
+        return f'<div class="ph"><img src="{_thumb_b64(entry["thumb"])}" alt="Acne photo"></div>'
+    return f'<div class="ph" style="background:{tint}">{ui.esc(fallback)}</div>'
+
+
 def acne() -> None:
-    ui.back_button("home")
-    st.markdown("# Acne Tracker")
+    ui.header("Acne tracker", "Add a photo and see how your skin changes")
     log = st.session_state.acne_log
-    scores = [e["score"] for e in log]
-    real = [e["score"] for e in log if not e.get("sample")]
+    ents = _acne_entries(log)
+    real = [e for e in ents if not e["sample"]]
+    scores = [e["score"] for e in real]
 
     # The trend uses only the user's own check-ins. The sample points are just there to show the chart.
-    if len(real) >= 4:
-        diff = sum(real[-2:]) / 2 - sum(real[:2]) / 2
-    elif len(real) >= 2:
-        diff = real[-1] - real[0]
+    if len(scores) >= 4:
+        diff = sum(scores[-2:]) / 2 - sum(scores[:2]) / 2
+    elif len(scores) >= 2:
+        diff = scores[-1] - scores[0]
     else:
         diff = 0
 
-    if len(real) < 2:
-        status, bg, ink, line, arrow = "Add more check-ins", "#E9F0EF", "#274547", "#0B6665", ""
-        detail = ("The chart starts with sample points so you can see how it looks. Save your own check-ins below and "
-                  "Aira will show your real trend." if not real else "Save at least two check-ins to see your trend.")
+    ui.html('<div class="hc-h">Add today\'s photo</div>')
+    _source_tiles("acne")
+    st.slider("How is your acne today? 0 is clear, 100 is severe", 0, 100, 40, key="acne_slider")
+    st.checkbox("Keep this photo in my tracker so I can compare later", value=True, key="acne_keep")
+    st.button("Save today's check-in", type="primary", key="acne_save", on_click=_save_acne, icon=":material/check:")
+    st.caption("The level is your own rating. Aira does not grade acne from photos yet. Photos stay in this visit only.")
+
+    # ---- result card
+    if len(scores) < 2:
+        status, bg, ink, arrow = "Add more check-ins", "#FFFFFF", "#274547", ""
+        detail = ("The chart starts with sample points so you can see how it looks. Save your own check-ins above and "
+                  "Aira will show your real trend." if not scores else "Save at least two check-ins to see your trend.")
     elif diff <= -5:
-        status, bg, ink, line, arrow = "Improving", "#DDF3E6", "#14603A", "#1E7A4C", "↓ "
+        status, bg, ink, arrow = "Improving", "#DDF3E6", "#14603A", ""
         detail = f"Down {abs(round(diff))} points since you started. Your routine seems to be working, keep going."
     elif diff >= 5:
-        status, bg, ink, line, arrow = "Getting worse", "#FBE6DE", "#8A3A10", "#B4531A", "↑ "
+        status, bg, ink, arrow = "Getting worse", "#FBE6DE", "#8A3A10", ""
         detail = (f"Up {round(diff)} points since you started. If it keeps rising, becomes painful or leaves marks, "
                   "please see a dermatologist.")
     else:
-        status, bg, ink, line, arrow = "About the same", "#E9F0EF", "#274547", "#0B6665", ""
+        status, bg, ink, arrow = "About the same", "#FFFFFF", "#274547", ""
         detail = "Your acne has stayed about the same. Keep the routine steady and check again next week."
+    ui.html('<div class="hc-h">Your result</div>')
+    cur = scores[-1] if scores else None
+    score_html = (f'{cur}<span style="font-size:15px;font-weight:600"> /100 &#183; {_level(cur)}</span>' if cur is not None
+                  else '<span style="font-size:20px;font-weight:700">No check-in yet</span>')
+    last_delta = (f'{scores[-1] - scores[-2]:+d} points'.replace("-", "\u2212") if len(scores) >= 2 else "\u2014")
+    ui.html(f'<div class="rc" style="background:#FAE5B5;border-color:#F0D9A0"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
+            f'<div class="k" style="color:#6B4A00">Your acne level &#183; self-rated{"" if scores else " &#183; sample"}</div>'
+            f'<span class="hc-pill" style="background:{bg};color:{ink}">{status}</span></div>'
+            f'<div class="big">{score_html}</div><div class="txt">{detail}</div>'
+            f'<div class="stat2"><div><div class="l">Since last check</div><div class="v">{last_delta}</div></div>'
+            f'<div><div class="l">Check-ins saved</div><div class="v">{len(scores)}</div></div></div></div>')
 
-    current = real[-1] if real else None
-    score_html = (f'{current}<span class="hc-muted" style="font-size:15px;font-weight:600"> / 100 &#183; {_level(current)}</span>'
-                  if current is not None else '<span class="hc-muted" style="font-size:20px;font-weight:700">No check-in yet</span>')
-    ui.card(
-        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
-        '<div><div class="hc-muted">Your latest acne score</div>'
-        f'<div style="font-size:34px;font-weight:800;letter-spacing:-0.02em">{score_html}</div></div>'
-        f'<span class="hc-pill" style="background:{bg};color:{ink}">{arrow}{status}</span></div>'
-        f'<p style="margin:10px 0 0 0;font-size:14px;line-height:1.5">{detail}</p>'
-    )
-    df = pd.DataFrame({"Acne score (lower is better)": scores}, index=range(1, len(scores) + 1))
-    st.line_chart(df, height=200, color=line)
+    # ---- before and after
+    ui.html('<div class="hc-h">Before and after</div>')
+    first, last = (real[0], real[-1]) if len(real) >= 2 else (None, None)
+    say = ""
+    if first:
+        d = last["score"] - first["score"]
+        word = f"down {abs(d)} points" if d < 0 else f"up {d} points" if d > 0 else "about the same"
+        say = f'<div class="aira-say">Aira: your level is {word} since {ui.esc(first["label"])}.</div>'
+    ui.html('<div class="wc"><div class="ba">'
+            f'<div>{_photo_box(first, "Your first photo", "#F8DCE8")}<div class="cap"><b>Before</b><span>{"Level " + str(first["score"]) if first else ""}</span></div></div>'
+            f'<div>{_photo_box(last, "Today\'s photo", "#D5EBDD")}<div class="cap"><b>Now</b><span>{"Level " + str(last["score"]) if last else ""}</span></div></div>'
+            f'</div>{say}</div>')
 
+    # ---- weekly trend as bars
+    shown = ents[-6:]
+    if shown:
+        top = max(max(e["score"] for e in shown), 1)
+        bars = "".join(f'<div><i class="{"now" if n == len(shown) - 1 else ""}" style="height:{max(6, e["score"] / top * 100):.0f}%"></i>'
+                       f'<span class="{"now" if n == len(shown) - 1 else ""}">{ui.esc("Today" if n == len(shown) - 1 and not e["sample"] else e["label"])}</span></div>'
+                       for n, e in enumerate(shown))
+        ui.html(f'<div class="hc-h">Weekly trend</div><div class="wc"><div class="trend">{bars}</div>'
+                '<p class="hc-muted" style="margin:8px 0 0 0">Lower bars mean clearer skin.</p></div>')
     if any(e.get("sample") for e in log):
         st.caption("The first points are sample data so you can see how the tracker looks.")
         st.button("Clear sample data", key="clear_sample", on_click=_clear_sample)
 
-    st.markdown("### Today's check-in")
-    st.slider("How is your acne today? 0 is clear, 100 is severe", 0, 100, 40, key="acne_slider")
-    st.button("Save check-in", type="primary", key="acne_save", on_click=_save_acne)
-    st.caption("This is a self-rating, not a photo score. The Skin Check can tell you if a photo looks like acne.")
+    # ---- check-in list
+    if ents:
+        ui.html('<div class="hc-h">Check-ins</div>')
+        tints = ["#D9EFE0", "#FAE5B5", "#E4E1F8"]
+        for n in range(len(ents) - 1, -1, -1):
+            e = ents[n]
+            if e["sample"]:
+                tag, tbg, tfg = "Sample", "#E6EAF2", "#46506A"
+            else:
+                prev = next((x for x in reversed(ents[:n]) if not x["sample"]), None)
+                dlt = e["score"] - prev["score"] if prev else 0
+                tag, tbg, tfg = (("First check-in", "#E6EAF2", "#46506A") if prev is None else
+                                 ("Improving", "#DDF3E6", "#14603A") if dlt <= -5 else
+                                 ("Getting worse", "#FBE6DE", "#8A3A10") if dlt >= 5 else ("About the same", "#E6EAF2", "#46506A"))
+            ui.html(f'<div class="ci"><div class="ic" style="background:{tints[n % 3]}">&#128247;</div><div class="m"><b>{ui.esc(e["label"])}</b>'
+                    f'<span>Acne level {e["score"]}</span></div><span class="hc-pill" style="background:{tbg};color:{tfg};font-size:12px">{tag}</span></div>')
 
     ui.card('<b>Aira\'s tip:</b> take each photo in the same light, at the same angle, without filters, '
             'so the weekly comparison stays fair.')
@@ -394,7 +495,17 @@ def _clear_sample() -> None:
 
 
 def _save_acne() -> None:
-    st.session_state.acne_log.append({"score": int(st.session_state.acne_slider), "sample": False})
+    entry = {"score": int(st.session_state.acne_slider), "sample": False, "date": dt.date.today().strftime("%d %b"), "thumb": None}
+    mode = st.session_state.get("srcmode_acne", "up")
+    photo = st.session_state.get("up_acne" if mode == "up" else "cam_acne")
+    if photo is not None and st.session_state.get("acne_keep", True):
+        try:
+            img = ImageOps.exif_transpose(Image.open(io.BytesIO(photo.getvalue()))).convert("RGB")
+            img.thumbnail((360, 360))
+            entry["thumb"] = img
+        except (OSError, ValueError):
+            pass
+    st.session_state.acne_log.append(entry)
 
 
 # =================================================================== SLEEP

@@ -204,3 +204,11 @@ DAILY_TIPS = [
     {"topic": "general", "en": "Sleep 7 to 8 hours. Skin and gums heal while you rest.",
      "hi": "7-8 घंटे सोएं। आराम के दौरान त्वचा और मसूड़े ठीक होते हैं।"},
 ]
+
+
+# Generic "see a doctor if" lists per check. General awareness, not medical advice.
+SEE_DOCTOR_IF = {
+    "skin": ["It spreads fast or you get a fever.", "It is no better in about 2 weeks.",
+             "It bleeds, grows, or changes colour or shape."],
+    "oral": ["It lasts more than 3 weeks.", "White or red patches, or a lump.", "Trouble swallowing or a fever."],
+}

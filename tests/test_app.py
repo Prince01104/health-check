@@ -55,18 +55,29 @@ def texts(at):
     return " ".join(m.value for m in at.markdown)
 
 
-def test_login_is_guest_mode_and_has_no_password_box():
+def test_login_demo_mode_consent_and_name_from_email():
     at = AppTest.from_file(APP, default_timeout=60).run()
     assert not at.exception
-    assert len(at.text_input) == 1 and at.text_input[0].type != "password"
-    at.text_input[0].set_value("<b>Prince</b>")
+    assert [t.label for t in at.text_input] == ["Email", "Password"] and at.text_input[1].proto.type == 1
+    at.text_input[0].set_value("prince.s@example.com")
+    at.text_input[1].set_value("whatever")
     at.button[0].click().run()
     assert not at.session_state["logged_in"] and "tick the box" in " ".join(e.value for e in at.error)   # consent first
-    at.text_input[0].set_value("<b>Prince</b>")
+    at.text_input[0].set_value("prince.s@example.com")
     at.checkbox[0].check()
-    at.button[0].click().run()                      # values inside a form are sent together with the submit click
+    at.button[0].click().run()
     assert at.session_state["logged_in"] and at.session_state["page"] == "home"
-    assert "&lt;b&gt;Prince&lt;/b&gt;" in texts(at) and "<b>Prince</b>" not in texts(at)   # name is escaped
+    assert at.session_state["name"] == "Prince"                       # only the first name is kept, never the email or password
+    kept = str({k: at.session_state[k] for k in ("name", "history", "results", "risk")})
+    assert "example.com" not in kept and "whatever" not in kept
+
+
+def test_login_with_blank_fields_still_works_and_html_in_email_is_stripped():
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.text_input[0].set_value("<b>x</b>")
+    at.checkbox[0].check()
+    at.button[0].click().run()
+    assert at.session_state["logged_in"] and "<" not in at.session_state["name"] and at.session_state["name"].isalpha()   # letters only, no markup
 
 
 @pytest.mark.parametrize("page", ["home", "history", "profile", "logout", "check", "acne", "aira", "tips", "progress", "sleep", "insomnia"])
@@ -135,7 +146,7 @@ def test_chat_flow_with_history_errors_and_limit(env):
     at.text_input[0].set_value("please fail")
     [b for b in at.button if b.label == "Send"][0].click().run()
     assert at.session_state["results"]["skin"]["chat"][-1][0] == "err" and any("still valid" in w.value for w in at.warning)
-    assert any("Possible" in m.value or "MOST LIKELY" in m.value for m in at.markdown)        # CNN result still there
+    assert any("SCREENING RESULT" in m.value.upper() for m in at.markdown)        # CNN result still there
 
 
 def test_question_limit():

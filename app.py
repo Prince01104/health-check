@@ -35,6 +35,7 @@ def init_state() -> None:
         "results": {},
         "history": [],
         "risk": dict(triage.DEFAULT_RISK),
+        "quick": {},
         "confirm_delete": False,
         "sleep_on": False,
         "sleep_end": 0.0,
