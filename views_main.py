@@ -13,7 +13,7 @@ def login() -> None:
     ui.html(f"""
     <div style="display:flex;flex-direction:column;align-items:center;gap:6px;margin:1.2rem 0 0 0;text-align:center">
       <div class="aira-float">{ui.aira(150, suffix="l")}</div>
-      <h1 style="margin:6px 0 0 0;font-size:2.3rem !important;color:#1B2A4A">Hi, I am Aira</h1>
+      <h1 style="margin:6px 0 0 0;font-size:2.3rem !important;color:#1B2A4A">Hi, I am Profosa</h1>
       <p style="margin:0 0 4px 0;font-size:17px;line-height:1.5;color:#5B6478">Your AI health companion.<br>Skin, teeth, sleep and more.</p>
     </div>
     <div class="lg-chips">{chips}</div>
@@ -22,7 +22,7 @@ def login() -> None:
     with st.form("login_form"):
         email = st.text_input("Email", placeholder="you@example.com", max_chars=60)
         st.text_input("Password", placeholder="Enter your password", type="password", max_chars=60)
-        agree = st.checkbox("I understand Aira is a screening aid, not a doctor. It cannot diagnose.")
+        agree = st.checkbox("I understand Profosa is a screening aid, not a doctor. It cannot diagnose.")
         submitted = st.form_submit_button("Login", type="primary")
     if submitted and not agree:
         st.error("Please tick the box to continue.")
@@ -143,7 +143,7 @@ def home() -> None:
     ui.html('<div class="hm-h">Care and wellbeing</div>')
     _row("sleep", "#E4E1F8", "Sleep sounds", "4 calming sounds with a timer", "sleep")
     _row("insomnia", "#DCE8F8", "Insomnia check", "5 quick questions and ideas", "insomnia")
-    _row("aira", "#F8DCE8", "Talk with Aira", "Ask any health question", "aira")
+    _row("aira", "#F8DCE8", "Talk with Profosa", "Ask any health question", "aira")
     st.markdown('<p class="hc-foot">AI screening only. See a doctor for a real diagnosis.</p>', unsafe_allow_html=True)
 
 
@@ -193,7 +193,7 @@ def profile() -> None:
         '<div style="font-weight:700">Checked in memory, never saved</div>'
     )
     ui.card('<b>About your data</b><div class="hc-muted" style="margin-top:2px">'
-            'Only the text of a result and your chat messages go to Google Gemini when you chat with Aira. '
+            'Only the text of a result and your chat messages go to Google Gemini when you chat with Profosa. '
             'Your photo is never sent. Feedback saves only your answer and comment, no photo and no name.</div>')
     st.markdown("### Risk factors (optional)")
     vc.risk_form("profile")

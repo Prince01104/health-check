@@ -1,4 +1,4 @@
-# Health Check with Aira
+# Health Check with Profosa
 
 A phone-style web app for early photo screening of the mouth and skin, built with Streamlit.
 It is a screening aid. It is not a doctor and it never gives a diagnosis.
@@ -14,8 +14,8 @@ It is a screening aid. It is not a doctor and it never gives a diagnosis.
   AI's answer or photo "fingerprint", and a mouth ulcer that lasts 2 weeks or more, and says why. Alerts are meant for a specialist's review.
   The model was not trained on photo pairs and the thresholds are not clinically validated.
 - **My Progress**: timeline, trend chart, a plain-text summary to show a doctor, and a progress file to continue next visit.
-- **Ask Aira**: a Gemini chat about the result. Only text goes to Gemini, never the photo. Safety rules are enforced in code.
-- **Home** is a colourful tile screen: Talk with Aira, Skin check, Oral check, Acne tracker, Sleep mode, Insomnia check and Health tips.
+- **Ask Profosa**: a Gemini chat about the result. Only text goes to Gemini, never the photo. Safety rules are enforced in code.
+- **Home** is a colourful tile screen: Talk with Profosa, Skin check, Oral check, Acne tracker, Sleep mode, Insomnia check and Health tips.
 - **Health tips** shows today's health headlines (public RSS feeds, cached for an hour, links open the publisher) and simple care ideas. If no feed can be reached, only the care ideas show.
 
 ## Privacy

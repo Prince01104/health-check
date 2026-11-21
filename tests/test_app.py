@@ -136,12 +136,12 @@ def result_app(status="ok"):
 
 def test_chat_flow_with_history_errors_and_limit(env):
     at, res = result_app("ok")
-    assert not at.exception and any("Ask Aira" in m.value for m in at.markdown)
+    assert not at.exception and any("Ask Profosa" in m.value for m in at.markdown)
     at.button(key="explain_skin").click().run()
     assert not at.exception and [r for r, _ in at.session_state["results"]["skin"]["chat"]] == ["user", "aira"]
     assert len(at.chat_message) == 2 and "not a diagnosis" in at.chat_message[1].markdown[0].value
     system, turns = env[-1]
-    assert "Aira" in system and "not a doctor" in system and "MODEL RESULT" in system and turns[-1]["role"] == "user"
+    assert "Profosa" in system and "not a doctor" in system and "MODEL RESULT" in system and turns[-1]["role"] == "user"
     at.text_input[0].set_value("And care tips?")
     [b for b in at.button if b.label == "Send"][0].click().run()
     chat_now = at.session_state["results"]["skin"]["chat"]
@@ -166,9 +166,9 @@ def test_question_limit():
 
 def test_invalid_photo_has_no_chat_and_uncertain_says_not_sure():
     at, _ = result_app("invalid")
-    assert not at.exception and not any("Ask Aira" in m.value for m in at.markdown)
+    assert not at.exception and not any("Ask Profosa" in m.value for m in at.markdown)
     at, _ = result_app("uncertain")
-    assert any("Not sure" in m.value for m in at.markdown) and any("Ask Aira" in m.value for m in at.markdown)
+    assert any("Not sure" in m.value for m in at.markdown) and any("Ask Profosa" in m.value for m in at.markdown)
 
 
 def test_feedback_saved_without_photo_or_name():

@@ -1,4 +1,4 @@
-"""Check, progress, Aira chat, tips and news, acne tracker, sleep and insomnia screens."""
+"""Check, progress, Profosa chat, tips and news, acne tracker, sleep and insomnia screens."""
 import base64
 import datetime as dt
 import hashlib
@@ -105,7 +105,7 @@ def check() -> None:
             st.warning("Please add a photo first.")
         else:
             try:
-                with st.spinner("Aira is looking at your photo..."):
+                with st.spinner("Profosa is looking at your photo..."):
                     res = S.analyse(key, io.BytesIO(data))
             except Exception as exc:                       # show a friendly message, keep the real error in the log
                 print("[error] analyse failed:", repr(exc))
@@ -294,7 +294,7 @@ def progress() -> None:
             st.rerun()
 
 
-# ---- Aira chat (Gemini)
+# ---- Profosa chat (Gemini)
 def _ask(key: str, question: str) -> None:
     """Send one question. Gemini only gets text (top predictions + chat), never the photo."""
     res = st.session_state.results[key]
@@ -302,7 +302,7 @@ def _ask(key: str, question: str) -> None:
     if sum(1 for role, _ in res["chat"] if role == "user") >= S.MAX_QUESTIONS:
         res["chat"].append(("err", S.CHAT_ERRORS["limit"]))
         return
-    with st.spinner("Aira is thinking..."):
+    with st.spinner("Profosa is thinking..."):
         out = S.ask_aira(res, question)            # reads the chat BEFORE the new question is added
     res["chat"].append(("user", question))
     if out["ok"]:
@@ -315,7 +315,7 @@ def _ask(key: str, question: str) -> None:
 
 
 def _chat(key: str, res: dict) -> None:
-    st.markdown("### Ask Aira")
+    st.markdown("### Ask Profosa")
     st.caption("AI assistant, not a doctor. It only uses the result above. Your photo is not sent, only the result text "
                "and your messages go to Google Gemini.")
     for role, text in res["chat"]:
@@ -326,7 +326,7 @@ def _chat(key: str, res: dict) -> None:
                 st.write(text)
 
     if not S.gemini_available():
-        st.caption("Aira's chat is off. Add GEMINI_API_KEY in the app secrets to turn it on.")
+        st.caption("Profosa's chat is off. Add GEMINI_API_KEY in the app secrets to turn it on.")
         return
     if not res["chat"]:
         if st.button("Explain this in simple words", key=f"explain_{key}"):
@@ -417,13 +417,13 @@ def acne() -> None:
     st.slider("How is your acne today? 0 is clear, 100 is severe", 0, 100, 40, key="acne_slider")
     st.checkbox("Keep this photo in my tracker so I can compare later", value=True, key="acne_keep")
     st.button("Save today's check-in", type="primary", key="acne_save", on_click=_save_acne, icon=":material/check:")
-    st.caption("The level is your own rating. Aira does not grade acne from photos yet. Photos stay in this visit only.")
+    st.caption("The level is your own rating. Profosa does not grade acne from photos yet. Photos stay in this visit only.")
 
     # ---- result card
     if len(scores) < 2:
         status, bg, ink, arrow = "Add more check-ins", "#FFFFFF", "#274547", ""
         detail = ("The chart starts with sample points so you can see how it looks. Save your own check-ins above and "
-                  "Aira will show your real trend." if not scores else "Save at least two check-ins to see your trend.")
+                  "Profosa will show your real trend." if not scores else "Save at least two check-ins to see your trend.")
     elif diff <= -5:
         status, bg, ink, arrow = "Improving", "#DDF3E6", "#14603A", ""
         detail = f"Down {abs(round(diff))} points since you started. Your routine seems to be working, keep going."
@@ -453,7 +453,7 @@ def acne() -> None:
     if first:
         d = last["score"] - first["score"]
         word = f"down {abs(d)} points" if d < 0 else f"up {d} points" if d > 0 else "about the same"
-        say = f'<div class="aira-say">Aira: your level is {word} since {ui.esc(first["label"])}.</div>'
+        say = f'<div class="aira-say">Profosa: your level is {word} since {ui.esc(first["label"])}.</div>'
     ui.html('<div class="wc"><div class="ba">'
             f'<div>{_photo_box(first, "Your first photo", "#F8DCE8")}<div class="cap"><b>Before</b><span>{"Level " + str(first["score"]) if first else ""}</span></div></div>'
             f'<div>{_photo_box(last, "Today\'s photo", "#D5EBDD")}<div class="cap"><b>Now</b><span>{"Level " + str(last["score"]) if last else ""}</span></div></div>'
@@ -489,7 +489,7 @@ def acne() -> None:
             ui.html(f'<div class="ci"><div class="ic" style="background:{tints[n % 3]}">&#128247;</div><div class="m"><b>{ui.esc(e["label"])}</b>'
                     f'<span>Acne level {e["score"]}</span></div><span class="hc-pill" style="background:{tbg};color:{tfg};font-size:12px">{tag}</span></div>')
 
-    ui.card('<b>Aira\'s tip:</b> take each photo in the same light, at the same angle, without filters, '
+    ui.card('<b>Profosa\'s tip:</b> take each photo in the same light, at the same angle, without filters, '
             'so the weekly comparison stays fair.')
 
 
@@ -621,14 +621,14 @@ def insomnia() -> None:
     st.button("Play sleep sounds", type="primary", key="ins_to_sleep", on_click=ui.go, args=("sleep",))
 
 
-# =================================================================== TALK WITH AIRA
+# =================================================================== TALK WITH PROFOSA
 def aira() -> None:
     ui.back_button("home")
-    st.markdown("# Talk with Aira")
+    st.markdown("# Talk with Profosa")
     results = st.session_state.get("results", {})
     if not results:
         ui.card('<div style="font-weight:800;font-size:17px">Run a check first</div>'
-                '<div class="hc-muted" style="margin-top:4px">Aira explains your result in simple words. '
+                '<div class="hc-muted" style="margin-top:4px">Profosa explains your result in simple words. '
                 'Take a Skin or Oral check, then come back here or ask on the result screen.</div>')
         left, right = st.columns(2)
         left.button("Skin check", key="aira_go_skin", on_click=ui.go, args=("check",), kwargs={"check_key": "skin"})
@@ -658,7 +658,7 @@ def tips() -> None:
                 f'<div class="hc-muted" style="margin-top:4px;font-size:12px">{ui.esc(it["source"])}'
                 f'{" &#183; " + ui.esc(it["ago"]) if it["ago"] else ""}</div>')
     if items:
-        st.caption("Headlines come from public news feeds and open the publisher's site. Aira does not write or check them. "
+        st.caption("Headlines come from public news feeds and open the publisher's site. Profosa does not write or check them. "
                    "They are general news, not advice for you.")
     st.markdown("### Care ideas")
     for tip in S.content.DAILY_TIPS[:8]:

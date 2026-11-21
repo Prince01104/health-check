@@ -1,4 +1,4 @@
-"""Models, Aira chat, feedback and sleep sounds. Edit this file when you add real backends.
+"""Models, Profosa chat, feedback and sleep sounds. Edit this file when you add real backends.
 
 The image models, Grad-CAM and photo-quality checks live in ml.py, the Gemini chat with its safety rules lives in
 chat.py, and the result texts live in content.py. models/registry.json says which model file each check uses.
@@ -214,15 +214,15 @@ def summary_for_doctor() -> str:
                                st.session_state.get("history", []), dt.datetime.now().strftime("%d %b %Y, %H:%M"))
 
 
-# --------------------------------------------------------------- Aira chat (Gemini)
-PERSONA = ("Your name in the app is Aira, a friendly and calm health guide. "
+# --------------------------------------------------------------- Profosa chat (Gemini)
+PERSONA = ("Your name in the app is Profosa, a friendly and calm health guide. "
            "Speak warmly, and keep it short.")
 MAX_QUESTIONS = 15          # per result: keeps the free Gemini quota safe on a public demo
 CHAT_ERRORS = {
-    "not_configured": "Aira's chat is off because no Gemini API key is set on this server. Your result above is still valid.",
-    "busy": "Aira is busy right now. Please try again in a minute. Your result above is still valid.",
-    "timeout": "Aira took too long to answer. Please try again. Your result above is still valid.",
-    "unavailable": "Aira could not reach Gemini right now. Please try again in a moment. Your result above is still valid.",
+    "not_configured": "Profosa's chat is off because no Gemini API key is set on this server. Your result above is still valid.",
+    "busy": "Profosa is busy right now. Please try again in a minute. Your result above is still valid.",
+    "timeout": "Profosa took too long to answer. Please try again. Your result above is still valid.",
+    "unavailable": "Profosa could not reach Gemini right now. Please try again in a moment. Your result above is still valid.",
     "limit": "You have reached the question limit for this result. Please run a new check to ask more.",
 }
 

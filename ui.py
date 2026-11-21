@@ -374,7 +374,7 @@ def header(title: str, subtitle: str = "", target: str = "home") -> None:
 
 
 def aira(size: int = 150, sleepy: bool = False, suffix: str = "a") -> str:
-    """Aira, the original humanoid guide, as inline SVG."""
+    """Profosa, the original humanoid guide, as inline SVG."""
     eyes = (
         '<path d="M45 56q5 4 10 0M65 56q5 4 10 0" fill="none" stroke="#7CF2E0" stroke-width="2.4" stroke-linecap="round"/>'
         if sleepy
@@ -383,7 +383,7 @@ def aira(size: int = 150, sleepy: bool = False, suffix: str = "a") -> str:
     )
     h = round(size * 140 / 120)
     return (
-        f'<svg width="{size}" height="{h}" viewBox="0 0 120 140" role="img" aria-label="Aira, your AI health companion">'
+        f'<svg width="{size}" height="{h}" viewBox="0 0 120 140" role="img" aria-label="Profosa, your AI health companion">'
         f'<defs><linearGradient id="b{suffix}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2FD3C0"/>'
         f'<stop offset="1" stop-color="#127A8C"/></linearGradient>'
         f'<linearGradient id="h{suffix}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2FBFA"/>'

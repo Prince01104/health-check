@@ -1,4 +1,4 @@
-"""Health Check with Aira: Streamlit app.   Run:  streamlit run app.py"""
+"""Health Check with Profosa: Streamlit app.   Run:  streamlit run app.py"""
 import streamlit as st
 
 import services as S
